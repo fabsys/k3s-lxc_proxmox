@@ -43,7 +43,7 @@ metadata:
   name: nginx-html
 data:
   index.html: |
-    <h1>hello v1</h1>
+    <h1>hello v2</h1>
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
