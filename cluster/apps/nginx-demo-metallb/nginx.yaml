@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx_metallb-deployment
+  name: nginx-metallb-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx_metallb
+      app: nginx-metallb
   template:
     metadata:
       labels:
-        app: nginx_metallb
+        app: nginx-metallb
     spec:
       containers:
-      - name: nginx_metallb
+      - name: nginx-metallb
         image: nginx
         ports:
         - containerPort: 80
@@ -23,18 +23,18 @@ spec:
       volumes:
       - name: html-volume
         configMap:
-          name: nginx_metallb-html
+          name: nginx-metallb-html
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx_metallb-service
+  name: nginx-metallb-service
   annotations:
     #metallb.io/address-pool: first-pool
     metallb.io/loadBalancerIPs: 192.168.1.250
 spec:
   selector:
-    app: nginx_metallb
+    app: nginx-metallb
   ports:
     - protocol: TCP
       port: 80
@@ -44,7 +44,7 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx_metallb-html
+  name: nginx-metallb-html
 data:
   index.html: |
     <h1>hello Metallb</h1>
