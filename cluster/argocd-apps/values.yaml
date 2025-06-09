@@ -1,0 +1,20 @@
+source:
+  repoUrl: https://github.com/fabsys/k3s-lxc_proxmox.git
+  revision: master
+
+apps:
+  # - appName: metallb
+  #   path: cluster/apps/metallb
+  #   namespace: metallb-system
+  # - appName: ingress-nginx
+  #   path: cluster/apps/ingress-nginx
+  #   namespace: ingress-nginx
+  - appName: hajimari
+    path: cluster/apps/hajimari
+    namespace: hajimari
+  # - appName: kuard
+  #   path: cluster/apps/kuard
+  #   namespace: kuard
+  - appName: nginx-demo
+    path: cluster/apps/nginx-demo
+    namespace: nginx-demo

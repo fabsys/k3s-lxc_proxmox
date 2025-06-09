@@ -1,0 +1,21 @@
+argo-cd:
+  crds:
+    install: true # -- Install and upgrade CRDs
+    keep: false # -- Keep CRDs on chart uninstall
+  server:
+    extraArgs:
+      - --insecure
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+        hajimari.io/appName: ArgoCD
+        hajimari.io/icon: robot
+      hosts:
+        - argocd.services.k8s
+      tls: []
+
+  configs:
+    secret:
+      argocdServerAdminPassword: $2a$12$bIjjBTOvM53e4x1dqFN5UuNkAIAMjWDGYPJvAIftp3zpFPqCSwCOq # "admin" bcrypt hashed
