@@ -12,8 +12,7 @@ argo-cd:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
         hajimari.io/appName: ArgoCD
         hajimari.io/icon: robot
-      hosts:
-        - argocd.services.k8s
+      hostname: "argocd.services.k8s"
       tls: []
 
   configs:
