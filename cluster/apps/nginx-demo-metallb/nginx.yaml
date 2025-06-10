@@ -31,7 +31,7 @@ metadata:
   name: nginx-metallb-service
   annotations:
     metallb.io/address-pool: first-pool
-    metallb.io/loadBalancerIPs: 192.168.1.250
+    metallb.io/loadBalancerIPs: 192.168.1.251
 spec:
   selector:
     app: nginx-metallb
