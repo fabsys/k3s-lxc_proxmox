@@ -16,8 +16,8 @@ apps:
   #   path: cluster/apps/kuard
   #   namespace: kuard
   # - appName: nginx-demo
-  #   path: cluster/apps/nginx-demo
-  #   namespace: nginx-demo
+    path: cluster/apps/nginx-demo
+    namespace: nginx-demo
 
   - appName: nginx-demo-metallb
     path: cluster/apps/nginx-demo-metallb
