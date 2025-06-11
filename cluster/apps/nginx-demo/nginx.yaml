@@ -20,10 +20,14 @@ spec:
         volumeMounts:
         - name: html-volume
           mountPath: /usr/share/nginx/html
+      # volumes:
+      # - name: html-volume
+      #   configMap:
+      #     name: nginx-html
       volumes:
       - name: html-volume
-        configMap:
-          name: nginx-html
+        secret:
+          secretName: nginx-html-secret
 ---
 apiVersion: v1
 kind: Service
@@ -37,13 +41,38 @@ spec:
       port: 80
       targetPort: 80
 ---
-apiVersion: v1
-kind: ConfigMap
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: nginx-html
+# data:
+#   index.html: |
+#     <h1>hello v3</h1>
+
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: nginx-html
+# type: Opaque
+# data:
+#   index.html: PGgxPmhlbGxvIFNlYWxkZWQgU2VjcmV0ICEhISEhPC9oMT4K
+
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
 metadata:
+  creationTimestamp: null
   name: nginx-html
-data:
-  index.html: |
-    <h1>hello v3</h1>
+  namespace: default
+spec:
+  encryptedData:
+    index.html: AgCkqYqWQJaZ+0Mw+rNpWZaBoty4kfIJO7clr13+0XgbP+cjQZnXuSIzrtfWr4vvbBkoUit1M8KtDninlQKCTyQhcdrHct4Y7QZecRqtp5RLXpXFPXeCbd5ENndP/XCd5FK9/0n1El4PCK2TBJT1dlZ/aC0b1qe6DZSrzaSYLQNFi1jJnaAaDs2MoRpvePEoETiXVgu9oefof2fzG15ahynxYv+3pywB0UAIq740lPBJFZ+UUpvWEyB0/ZdyY9GJLngbR2UWtxBbz1xm5lpk2dla+V13zvHxuDwmQsSkotKrr0QqyEhUJ4Iqo46X6xqRH49xeTT2QUe+tkFGEt6E4Ge64vqv63Y+egQ/GJuWM2j6oji2B0LCxJuorL5ZMVvjuZk62w885ynSN9I7Fm39quiKvCSUPXQkq9tEYNAxv/Ci09lZXpQTmwwJDOSM3JUZw2RjC8iqatsQCDmip+JaGJgTW1vgZn/9BThPHSq7gCs38EH1irkAAkJOaAuE8hp9i9GVBfpAB1hHg0SHkp75/WgFqSbEejpmG24eP0lS9qwSUJaKNh8SDcNSOX6rgeo/uqDnDmSQaREWSAxvyNDGhVNZVgeDW29/aw6luJwa7mgw2+HmOnUqPCASbklRx94iZ8jsmMI+ZefJ3TedGC13mHV/gWp/YDd0toOqfN2zIhUN4maf8QBjtdB/HqTxW78p0oNkzu4/Dfz3jnZAOmdrkoB2cL+3JIy0fI9jo/ARQDA8f+NHvlk=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: nginx-html
+      namespace: default
+    type: Opaque
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
