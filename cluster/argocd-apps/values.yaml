@@ -18,7 +18,9 @@ apps:
   - appName: nginx-demo
     path: cluster/apps/nginx-demo
     namespace: nginx-demo
-
+  - appName: sealed-secrets
+    path: cluster/apps/sealed-secrets
+    namespace: sealed-secrets
   - appName: nginx-demo-metallb
     path: cluster/apps/nginx-demo-metallb
     namespace: nginx-demo-metallb
