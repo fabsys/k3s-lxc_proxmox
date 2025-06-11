@@ -27,7 +27,7 @@ spec:
       volumes:
       - name: html-volume
         secret:
-          secretName: nginx-html-secret
+          secretName: nginx-html
 ---
 apiVersion: v1
 kind: Service
