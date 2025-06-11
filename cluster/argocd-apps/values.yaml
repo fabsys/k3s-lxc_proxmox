@@ -18,7 +18,7 @@ apps:
   - appName: nginx-demo
     path: cluster/apps/nginx-demo
     namespace: nginx-demo
-  - appName: sealed-secrets
+  - appName: sealed-secrets-controller
     path: cluster/apps/sealed-secrets
     namespace: kube-system
   - appName: nginx-demo-metallb
