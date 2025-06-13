@@ -3,7 +3,7 @@ credentials:
 
 configuration:
   backupStorageLocation:
-    - name: default
+    - name: fabsysk8sbackup
       provider: aws
       bucket: fabsysk8sbackup
       default: true
@@ -12,7 +12,7 @@ configuration:
         s3ForcePathStyle: true
         s3Url: s3.eu-central-003.backblazeb2.com
   volumeSnapshotLocation:
-    - name: default
+    - name: fabsysk8sbackup
       provider: aws
       config:
         region: eu-central-003
