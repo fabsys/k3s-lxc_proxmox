@@ -24,3 +24,6 @@ apps:
   - appName: nginx-demo-metallb
     path: cluster/apps/nginx-demo-metallb
     namespace: nginx-demo-metallb
+  - appName: velero
+    path: cluster/apps/velero
+    namespace: velero
