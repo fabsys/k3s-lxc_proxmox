@@ -9,6 +9,8 @@ velero:
         bucket: fabsysk8sbackup
         default: true
         config:
+          # deactivation de l'entete (necessaire pour les fournisseurs alternatif et depuis velero 1.9.1, autre solution  downgrade a la version 1.9.0)
+          checksumAlgorithm: ""
           region: eu-central-003
           s3ForcePathStyle: true
           s3Url: https://s3.eu-central-003.backblazeb2.com
