@@ -1,8 +1,13 @@
-controller:
-  annotations:
-    metallb.io/address-pool: first-pool
-    metallb.io/loadBalancerIPs: 192.168.1.251
-  # service:
-  #   enabled: true
-  #   type: LoadBalancer
-  #   loadBalancerIP: "192.168.1.250"  # IP du pool MetalLB
+ingress-nginx:
+  controller:
+    annotations:
+      metallb.io/address-pool: first-pool
+      metallb.io/loadBalancerIPs: 192.168.1.251
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: true
+    # service:
+    #   enabled: true
+    #   type: LoadBalancer
+    #   loadBalancerIP: "192.168.1.250"  # IP du pool MetalLB
