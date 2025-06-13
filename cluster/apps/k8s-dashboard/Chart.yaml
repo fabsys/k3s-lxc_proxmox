@@ -2,6 +2,6 @@ apiVersion: v2
 name: k8s-dashboard
 version: 7.13.0
 dependencies:
-  - name: k8s-dashboard
+  - name: kubernetes-dashboard
     version: 7.13.0
     repository: https://kubernetes.github.io/dashboard

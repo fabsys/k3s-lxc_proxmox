@@ -1,4 +1,4 @@
-k8s-dashboard:
+kubernetes-dashboard:
   ingress:
     enabled: true
     hosts:
