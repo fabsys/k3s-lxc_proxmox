@@ -1,20 +1,36 @@
 kubernetes-dashboard:
   ingress:
     enabled: true
+    className: nginx  # 'ingressClassName' est maintenant 'className' dans les versions récentes
     hosts:
-      # Keep 'localhost' host only if you want to access Dashboard using 'kubectl port-forward ...' on:
-      # https://localhost:8443
-      - dashboard.services.k8s
-    ingressClassName: nginx
-    useDefaultIngressClass: true
+      - host: dashboard.services.k8s
+        paths:
+          - path: /
+            pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Optionnel pour TLS
 
-resources:
-  limits:
-    cpu: 100m
-    memory: 200Mi
-  requests:
-    cpu: 50m
-    memory: 100Mi
+  # Activation TLS (optionnel mais recommandé)
+  tls:
+    - secretName: dashboard-tls
+      hosts:
+        - dashboard.services.k8s
 
-extraArgs:
-  - --enable-skip-login  # Permettre l'accès sans authentification (DEV ONLY)
+  # Configuration du container
+  extraArgs:
+    - --enable-skip-login
+    
+  resources:
+    limits:
+      cpu: 100m
+      memory: 200Mi
+    requests:
+      cpu: 50m
+      memory: 100Mi
+
+  # Important pour les versions récentes
+  protocolHttp: false
+  service:
+    port: 443
+    targetPort: 8443
