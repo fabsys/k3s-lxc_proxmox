@@ -11,7 +11,7 @@ velero:
         config:
           region: eu-central-003
           s3ForcePathStyle: true
-          s3Url: s3.eu-central-003.backblazeb2.com
+          s3Url: https://s3.eu-central-003.backblazeb2.com
 
     volumeSnapshotLocation:
       - name: aws
