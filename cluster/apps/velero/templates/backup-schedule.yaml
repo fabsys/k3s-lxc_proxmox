@@ -1,0 +1,14 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: mon-schedule
+  namespace: velero
+spec:
+  schedule: "0 0 * * *" # tous les jours à minuit (cron)
+  template:
+    includedNamespaces:
+      - nginx-demo
+    # Optionnel : durée de rétention du backup
+    # ttl: 168h
+    # Optionnel : inclure les ressources cluster-scoped
+    # includeClusterResources: true
