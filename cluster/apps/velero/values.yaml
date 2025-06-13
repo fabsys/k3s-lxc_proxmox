@@ -3,20 +3,20 @@ credentials:
 
 configuration:
   backupStorageLocation:
-    name: aws
-    provider: aws
-    bucket: fabsysk8sbackup
-    default: true
-    config:
-      region: eu-central-003
-      s3ForcePathStyle: true
-      s3Url: s3.eu-central-003.backblazeb2.com
+    - name: aws
+      provider: aws
+      bucket: fabsysk8sbackup
+      default: true
+      config:
+        region: eu-central-003
+        s3ForcePathStyle: true
+        s3Url: s3.eu-central-003.backblazeb2.com
 
   volumeSnapshotLocation:
-    name: aws
-    provider: aws
-    config:
-      region: eu-central-003
+    - name: aws
+      provider: aws
+      config:
+        region: eu-central-003
 
 initContainers:
   - name: velero-plugin-for-aws
