@@ -8,14 +8,11 @@ kubernetes-dashboard:
         - dashboard.services.k8s
       ingressClassName: nginx
       useDefaultIngressClass: true
-
-resources:
-  limits:
-    cpu: 100m
-    memory: 200Mi
-  requests:
-    cpu: 50m
-    memory: 100Mi
-
-extraArgs:
-  - --enable-skip-login  # Permettre l'accès sans authentification (DEV ONLY)
+web:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 200Mi
+    requests:
+      cpu: 50m
+      memory: 100Mi
