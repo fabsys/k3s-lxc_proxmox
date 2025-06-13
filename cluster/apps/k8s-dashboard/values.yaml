@@ -12,11 +12,11 @@ kubernetes-dashboard:
         nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
         cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Optionnel pour TLS
 
-      # Activation TLS (optionnel mais recommandé)
-      tls:
-        - secretName: dashboard-tls
-          hosts:
-            - dashboard.services.k8s
+      # # Activation TLS (optionnel mais recommandé)
+      # tls:
+      #   - secretName: dashboard-tls
+      #     hosts:
+      #       - dashboard.services.k8s
     
   resources:
     limits:
