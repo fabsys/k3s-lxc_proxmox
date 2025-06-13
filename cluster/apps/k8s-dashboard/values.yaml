@@ -1,25 +1,22 @@
 kubernetes-dashboard:
-  ingress:
-    enabled: true
-    className: nginx  # 'ingressClassName' est maintenant 'className' dans les versions récentes
-    hosts:
-      - host: dashboard.services.k8s
-        paths:
-          - path: /
-            pathType: Prefix
-    annotations:
-      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-      cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Optionnel pour TLS
-
-  # Activation TLS (optionnel mais recommandé)
-  tls:
-    - secretName: dashboard-tls
+  app:
+    ingress:
+      enabled: true
+      className: nginx  # 'ingressClassName' est maintenant 'className' dans les versions récentes
       hosts:
-        - dashboard.services.k8s
+        - host: dashboard.services.k8s
+          paths:
+            - path: /
+              pathType: Prefix
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Optionnel pour TLS
 
-  # Configuration du container
-  extraArgs:
-    - --enable-skip-login
+      # Activation TLS (optionnel mais recommandé)
+      tls:
+        - secretName: dashboard-tls
+          hosts:
+            - dashboard.services.k8s
     
   resources:
     limits:
