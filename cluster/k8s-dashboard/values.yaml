@@ -1,0 +1,20 @@
+k8s-dashboard:
+  ingress:
+    enabled: true
+    hosts:
+      # Keep 'localhost' host only if you want to access Dashboard using 'kubectl port-forward ...' on:
+      # https://localhost:8443
+      - dashboard.services.k8s
+    #ingressClassName: nginx
+    useDefaultIngressClass: true
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200Mi
+  requests:
+    cpu: 50m
+    memory: 100Mi
+
+extraArgs:
+  - --enable-skip-login  # Permettre l'accès sans authentification (DEV ONLY)

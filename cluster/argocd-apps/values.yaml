@@ -27,3 +27,6 @@ apps:
   - appName: velero
     path: cluster/apps/velero
     namespace: velero
+  - appName: k8s-dashboard
+    path: cluster/apps/k8s-dashboard
+    namespace: k8s-dashboard
