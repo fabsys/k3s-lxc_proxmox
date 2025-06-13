@@ -5,8 +5,7 @@ configuration:
   backupStorageLocation:
     - name: default
       provider: aws
-      objectStorage:
-        bucket: fabsysk8sbackup
+      bucket: fabsysk8sbackup
       default: true
       config:
         region: eu-central-003
