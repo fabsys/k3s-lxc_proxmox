@@ -30,3 +30,6 @@ apps:
   - appName: k8s-dashboard
     path: cluster/apps/k8s-dashboard
     namespace: k8s-dashboard
+  - appName: no-as-a-service
+    path: cluster/apps/no-as-a-service
+    namespace: no-as-a-service
