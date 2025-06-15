@@ -4,3 +4,6 @@ no-as-a-service:
     className: "nginx"
     hosts:
       - host: no-chart.services.k8s
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
