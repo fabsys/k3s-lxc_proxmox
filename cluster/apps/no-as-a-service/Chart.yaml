@@ -4,4 +4,5 @@ version: 0.1.0
 dependencies:
   - name: no-as-a-service
     version: 0.1.0
+    appVersion: 0.1.0
     repository: https://fabsys.github.io/no-as-a-service/
