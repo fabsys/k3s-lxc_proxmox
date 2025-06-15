@@ -1,8 +1,7 @@
 apiVersion: v2
 name: no-as-a-service
-version: 0.1.0
+version: 0.1.1
 dependencies:
   - name: no-as-a-service
-    version: 0.1.0
-    appVersion: 0.1.0
+    version: 0.1.1
     repository: https://fabsys.github.io/no-as-a-service/
