@@ -1,0 +1,6 @@
+no-as-a-service:
+  ingress:
+    enabled: true
+    className: "nginx"
+    hosts:
+      - host: no-chart.services.k8s
