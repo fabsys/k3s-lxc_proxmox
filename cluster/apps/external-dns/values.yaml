@@ -1,16 +1,11 @@
 external-dns:
-  clusterDomain: cluster.local
 
+  provider: pihole
+
+  # Nom du domaine que tu veux gérer
+  domainFilters:
+    - "cluster.local"
+
+  # URL de ton Pi-hole (souvent http://<ip>/admin ou https://<dns>/admin)
   pihole:
-    ## @param pihole.server When using the Pi-hole provider, specify The address of the Pi-hole web server
-    ##
-    server: "pi-hole.lan"
-    ## @param pihole.tlsSkipVerify When using the Pi-hole provider, specify wheter to skip verification of any TLS certificates served by the Pi-hole web server
-    ##
-    tlsSkipVerify: ""
-    ## @param pihole.password When using the Pi-hole provider, specify a password to use
-    ##
-    password: ""
-    ## @param pihole.secretName Use an existing secret with key "pihole_password" defined.
-    ##
-    secretName: ""
+    server: "http://192.168.1.106/admin"
