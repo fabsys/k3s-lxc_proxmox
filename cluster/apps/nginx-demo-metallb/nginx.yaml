@@ -20,6 +20,8 @@ spec:
         volumeMounts:
         - name: html-volume
           mountPath: /usr/share/nginx/html
+        - name: host-data
+          mountPath: /data
       volumes:
       - name: html-volume
         configMap:

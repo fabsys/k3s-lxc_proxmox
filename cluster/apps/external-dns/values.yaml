@@ -6,7 +6,7 @@ external-dns:
 
   provider: pihole
 
-  logLevel: debug
+  #logLevel: debug
   policy: sync
   registry: txt
   txtOwnerId: "k8s"
