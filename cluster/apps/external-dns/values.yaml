@@ -14,7 +14,7 @@ external-dns:
   # On passe les paramètres du provider Pi-hole via extraArgs
   extraArgs:
     - --pihole-server=http://192.168.1.106
-    - --pihole-tls-skip-verify=true
+    - --pihole-tls-skip-verify
     # pas besoin de mot de passe → ne pas ajouter --pihole-password
 
   serviceAccount:
