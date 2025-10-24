@@ -33,3 +33,6 @@ apps:
   - appName: no-as-a-service
     path: cluster/apps/no-as-a-service
     namespace: no-as-a-service
+  - appName: external-dns
+    path: cluster/apps/external-dns
+    namespace: external-dns

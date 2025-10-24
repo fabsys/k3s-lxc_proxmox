@@ -1,0 +1,9 @@
+apiVersion: v2
+name: external-dns
+description: ExternalDNS is a Kubernetes addon that configures public DNS servers with information about exposed Kubernetes services to make them discoverable.
+type: application
+version: 9.0.3
+dependencies:
+  - name: external-dns
+    version: 9.0.3
+    repository: https://charts.bitnami.com/bitnami
