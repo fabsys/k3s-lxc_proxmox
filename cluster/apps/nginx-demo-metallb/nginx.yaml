@@ -24,6 +24,11 @@ spec:
       - name: html-volume
         configMap:
           name: nginx-metallb-html
+      #Test de montage d'un dossier sur le node
+      - name: host-data
+        hostPath:
+          path: /mnt/data_test       # le répertoire sur le worker
+          type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
