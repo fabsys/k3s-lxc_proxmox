@@ -13,4 +13,4 @@ external-dns:
   password: ""
   ## @param pihole.secretName Use an existing secret with key "pihole_password" defined.
   ##
-  #secretName: "pihole-password"
+  secretName: ""
