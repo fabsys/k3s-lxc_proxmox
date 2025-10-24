@@ -1,4 +1,9 @@
 external-dns:
+
+  image:  # @schema additionalProperties: false
+    tag:  latest
+
+
   provider: pihole
 
   logLevel: debug
