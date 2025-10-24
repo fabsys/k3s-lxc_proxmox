@@ -1,7 +1,7 @@
 external-dns:
 
   image:  # @schema additionalProperties: false
-    tag:  v20251024-v0.19.0-64-g994f4dc2
+    tag:  v20250402-v0.16.1-48-g1efdf416
     repository: gcr.io/k8s-staging-external-dns/external-dns
 
   provider: pihole
