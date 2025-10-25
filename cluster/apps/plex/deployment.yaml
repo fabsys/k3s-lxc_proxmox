@@ -22,7 +22,7 @@ spec:
             - name: TZ
               value: "Europe/London"
             - name: PLEX_CLAIM
-              value: "claim-f5mbJqoLzTUkABmjYDSK"
+              value: "claim-YCUTfxbWhk2J_Rk5U_SJ"
           volumeMounts:
             # - name: plex-config
             #   mountPath: /config
@@ -31,6 +31,8 @@ spec:
             - name: plex-media
               mountPath: /data
               readOnly: true
+            - name: plex-config
+              mountPath: /config
       volumes:
         # - name: plex-config
         #   hostPath:
@@ -40,6 +42,9 @@ spec:
         #   hostPath:
         #     path: "<path/to/transcode/temp>"
         #     type: DirectoryOrCreate
+        - name: plex-config
+          persistentVolumeClaim:
+            claimName: plex-config-pvc
         - name: plex-media
           hostPath:
             path: "/mnt/shared_data/movies"
