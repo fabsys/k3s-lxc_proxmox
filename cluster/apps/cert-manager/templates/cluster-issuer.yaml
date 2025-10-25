@@ -9,15 +9,6 @@ spec:
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
-    - http01:
-        ingress:
-          class: nginx
-          ingressTemplate:
-            metadata:
-              annotations:
-                kubernetes.io/ingress.class: nginx
-            spec:
-              rules:
-                - http:
-                    paths:
-                      - pathType: Prefix
+      - http01:
+          ingress:
+            ingressClassName: nginx
