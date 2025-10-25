@@ -3,17 +3,17 @@ kind: Ingress
 metadata:
   name: nginx-ingress
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: "nginx-demo.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/hostname: "nginx-demo2.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "fabsys.ovh"
     #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-      - nginx-demo.fabsys.ovh
+      - nginx-demo2.fabsys.ovh
     secretName: nginx-ingress-tls
   rules:
-  - host: nginx-demo.fabsys.ovh
+  - host: nginx-demo2.fabsys.ovh
     http:
       paths:
       - path: /
