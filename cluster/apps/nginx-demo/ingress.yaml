@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "nginx-demo.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+      - nginx-demo.fabsys.ovh
+    secretName: nginx-ingress-tls
+  rules:
+  - host: nginx-demo.fabsys.ovh
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80

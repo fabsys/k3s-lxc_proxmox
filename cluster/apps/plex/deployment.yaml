@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex
+  labels:
+    app: plex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plex
+  template:
+    metadata:
+      labels:
+        app: plex
+    spec:
+      hostNetwork: true   # équivalent --network=host
+      containers:
+        - name: plex
+          image: plexinc/pms-docker:latest
+          env:
+            - name: TZ
+              value: "Europe/London"
+            - name: PLEX_CLAIM
+              value: "<claimToken>"
+          volumeMounts:
+            # - name: plex-config
+            #   mountPath: /config
+            # - name: plex-transcode
+            #   mountPath: /transcode
+            - name: plex-media
+              mountPath: /data
+              readOnly: true
+      volumes:
+        # - name: plex-config
+        #   hostPath:
+        #     path: "<path/to/plex/database>"
+        #     type: DirectoryOrCreate
+        # - name: plex-transcode
+        #   hostPath:
+        #     path: "<path/to/transcode/temp>"
+        #     type: DirectoryOrCreate
+        - name: plex-media
+          hostPath:
+            path: "/mnt/movies"
+            type: DirectoryOrCreate
