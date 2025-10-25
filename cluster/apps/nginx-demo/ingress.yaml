@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: nginx-ingress
   annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     external-dns.alpha.kubernetes.io/hostname: "nginx-demo2.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
     #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
