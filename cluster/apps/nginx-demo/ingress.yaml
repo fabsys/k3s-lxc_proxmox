@@ -4,6 +4,7 @@ metadata:
   name: nginx-ingress
   annotations:
     external-dns.alpha.kubernetes.io/hostname: "nginx-demo.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/target: "fabsys.ovh"
     #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
 spec:
   ingressClassName: nginx
