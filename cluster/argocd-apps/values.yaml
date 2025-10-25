@@ -36,3 +36,6 @@ apps:
   - appName: external-dns
     path: cluster/apps/external-dns
     namespace: external-dns
+  - appName: cert-manager
+    path: cluster/apps/cert-manager
+    namespace: cert-manager
