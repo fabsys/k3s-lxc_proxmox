@@ -1,5 +1,7 @@
 ingress-nginx:
   controller:
+    service:
+      externalTrafficPolicy: Local
     annotations:
       metallb.io/address-pool: first-pool
       metallb.io/loadBalancerIPs: 192.168.1.250
