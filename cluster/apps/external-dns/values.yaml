@@ -34,6 +34,7 @@ external-dns:
 
   provider:
     name: cloudflare
+    #proxied: true
   env:
     - name: CF_API_TOKEN
       valueFrom:
