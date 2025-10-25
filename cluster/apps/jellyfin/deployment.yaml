@@ -30,22 +30,20 @@ spec:
           volumeMounts:
             - name: jellyfin-config
               mountPath: /config
-            - name: jellyfin-cache
-              mountPath: /cache
+            # - name: jellyfin-cache
+            #   mountPath: /cache
             - name: jellyfin-media
               mountPath: /media
               readOnly: true  # 🔹 en lecture seule pour la bibliothèque
-      restartPolicy: Always
       volumes:
         - name: jellyfin-config
-          hostPath:
-            path: "/path/to/config"
-            type: DirectoryOrCreate
-        - name: jellyfin-cache
-          hostPath:
-            path: "/path/to/cache"
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: jellyfin-config-pvc
+        # - name: jellyfin-cache
+        #   hostPath:
+        #     path: "/path/to/cache"
+        #     type: DirectoryOrCreate
         - name: jellyfin-media
           hostPath:
-            path: "/path/to/media"
+            path: "/mnt/shared_data/movies"
             type: Directory
