@@ -22,7 +22,7 @@ spec:
             - name: TZ
               value: "Europe/London"
             - name: PLEX_CLAIM
-              value: "<claimToken>"
+              value: "claim-f5mbJqoLzTUkABmjYDSK"
           volumeMounts:
             # - name: plex-config
             #   mountPath: /config
@@ -42,5 +42,5 @@ spec:
         #     type: DirectoryOrCreate
         - name: plex-media
           hostPath:
-            path: "/mnt/movies"
+            path: "/mnt/shared_data/movies"
             type: DirectoryOrCreate

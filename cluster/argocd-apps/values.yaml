@@ -39,3 +39,6 @@ apps:
   - appName: cert-manager
     path: cluster/apps/cert-manager
     namespace: cert-manager
+  - appName: plex
+    path: cluster/apps/plex
+    namespace: plex
