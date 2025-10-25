@@ -22,7 +22,7 @@ spec:
             - name: TZ
               value: "Europe/London"
             - name: PLEX_CLAIM
-              value: "claim-YCUTfxbWhk2J_Rk5U_SJ"
+              value: "claim-XMsih_pZwMxefQBqxKfb"
           volumeMounts:
             # - name: plex-config
             #   mountPath: /config
