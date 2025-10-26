@@ -7,7 +7,7 @@ argo-cd:
       - --insecure
     ingress:
       enabled: true
-      ingressClassName: nginx
+      ingressClassName: nginx-private
       annotations:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
         hajimari.io/appName: ArgoCD
