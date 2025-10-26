@@ -8,17 +8,32 @@ spec:
     spec:
       template:
         spec:
+          # Init container pour copier le Secret dans un volume writable
+          initContainers:
+          - name: copy-ddclient-config
+            image: busybox
+            command: ["sh", "-c", "cp /secret/ddclient.conf /config/ddclient.conf"]
+            volumeMounts:
+              - name: config
+                mountPath: /config
+              - name: ddclient-secret
+                mountPath: /secret
           containers:
           - name: ddclient
             image: linuxserver/ddclient:latest
             volumeMounts:
-            - name: config
-              mountPath: /config
+              - name: config
+                mountPath: /config
           volumes:
+            # Volume writable pour /config
             - name: config
+              emptyDir: {}
+            # Secret contenant ddclient.conf
+            - name: ddclient-secret
               secret:
                 secretName: ddclient-config
           restartPolicy: OnFailure
+
 
 
 # create secret: 
