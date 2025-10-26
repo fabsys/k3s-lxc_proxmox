@@ -8,7 +8,7 @@ metadata:
     external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
     #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx-public
   tls:
   - hosts:
       - jellyfin.fabsys.ovh
