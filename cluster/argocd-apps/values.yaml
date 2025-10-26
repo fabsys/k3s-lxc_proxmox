@@ -6,9 +6,12 @@ apps:
   - appName: metallb
     path: cluster/apps/metallb
     namespace: metallb-system
-  - appName: ingress-nginx
-    path: cluster/apps/ingress-nginx
-    namespace: ingress-nginx
+  - appName: ingress-nginx-private
+    path: cluster/apps/ingress-nginx-private
+    namespace: ingress-nginx-private
+  - appName: ingress-nginx-public
+    path: cluster/apps/ingress-nginx-public
+    namespace: ingress-nginx-public
   - appName: hajimari
     path: cluster/apps/hajimari
     namespace: hajimari
