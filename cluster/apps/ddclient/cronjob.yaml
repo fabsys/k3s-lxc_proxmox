@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ddclient-cron
+spec:
+  schedule: "*/5 * * * *" # toutes les 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: ddclient
+            image: linuxserver/ddclient:latest
+            volumeMounts:
+            - name: config
+              mountPath: /config
+          volumes:
+            - name: config
+              secret:
+                secretName: ddclient-config
+          restartPolicy: OnFailure
+
+
+# create secret: 
+
+# kubeseal -f ddclient-config.yaml -o yaml
+
+# kubectl create secret generic ddclient-config \
+#   --from-file=ddclient.conf=./ddclient.conf \
+#   -n ddclient --dry-run=client -o yaml
+
+# kubectl create secret generic ddclient-config \
+#   --from-file=ddclient.conf=./ddclient.conf \
+#   -n ddclient --dry-run=client -o yaml \
+# | kubeseal -o yaml -n ddclient

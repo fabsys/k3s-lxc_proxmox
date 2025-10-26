@@ -7,7 +7,7 @@ metadata:
     external-dns.alpha.kubernetes.io/hostname: "nginx-demo2.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
     #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0" # Service à vu Internet
+    #nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0" # Service à vu Internet
 spec:
   ingressClassName: nginx-public
   tls:
