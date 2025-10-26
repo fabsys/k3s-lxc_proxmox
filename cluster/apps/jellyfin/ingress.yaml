@@ -7,6 +7,11 @@ metadata:
     external-dns.alpha.kubernetes.io/hostname: "jellyfin.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
     #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/connection-proxy-header: "keep-alive"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
 spec:
   ingressClassName: nginx-public
   tls:
