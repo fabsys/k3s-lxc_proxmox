@@ -1,0 +1,21 @@
+ingress-nginx:
+  controller:
+    name: ingress-nginx-private
+    ingressClassResource:
+      name: nginx-private
+      controllerValue: "k8s.io/ingress-nginx-private"
+      enabled: true
+      default: true
+    service:
+      externalTrafficPolicy: Local
+      loadBalancerSourceRanges:
+        - 192.168.1.0/24
+      annotations:
+        metallb.io/address-pool: first-pool
+        metallb.io/loadBalancerIPs: 192.168.1.251
+    config:
+      whitelist-source-range: "192.168.1.0/24"
+    metrics:
+      enabled: false
+    admissionWebhooks:
+      enabled: false
