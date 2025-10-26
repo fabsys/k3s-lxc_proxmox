@@ -48,3 +48,6 @@ apps:
   - appName: jellyfin
     path: cluster/apps/jellyfin
     namespace: jellyfin
+  - appName: ddclient
+    path: cluster/apps/ddclient
+    namespace: ddclient
