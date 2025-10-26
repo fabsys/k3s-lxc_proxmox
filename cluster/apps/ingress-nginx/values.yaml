@@ -2,6 +2,11 @@ ingress-nginx:
   controller:
     service:
       externalTrafficPolicy: Local
+      loadBalancerSourceRanges:
+        - 192.168.1.0/24
+    config:
+      # Applique cette restriction à TOUS les ingress par défaut
+      whitelist-source-range: "192.168.1.0/24"
     annotations:
       metallb.io/address-pool: first-pool
       metallb.io/loadBalancerIPs: 192.168.1.250
