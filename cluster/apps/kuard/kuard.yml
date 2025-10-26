@@ -42,7 +42,7 @@ metadata:
     hajimari.io/appName: Kuard
     hajimari.io/icon: robot
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx-private
   rules:
     - host: "kuard.services.k8s"
       http:

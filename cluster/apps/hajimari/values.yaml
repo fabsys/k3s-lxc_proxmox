@@ -6,7 +6,7 @@ hajimari:
   ingress:
     main:
       enabled: true
-      ingressClassName: nginx
+      ingressClassName: nginx-private
       annotations:
         hajimari.io/enable: 'false'
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
