@@ -1,13 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root
+  name: root-app
   namespace: argocd
 spec:
+  project: default
   source:
     repoURL: https://github.com/fabsys/k3s-lxc_proxmox
     path: cluster/argocd-apps
-    targetRevision: master
+    targetRevision: main
   destination:
     namespace: argocd
     name: in-cluster
