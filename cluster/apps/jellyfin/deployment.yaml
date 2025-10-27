@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jellyfin
-  labels:
-    app: jellyfin
 spec:
   replicas: 1
   selector:
@@ -14,36 +12,231 @@ spec:
       labels:
         app: jellyfin
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: jellyfin
-          image: jellyfin/jellyfin:latest
+          image: docker.io/jellyfin/jellyfin:10.8.13
           ports:
             - containerPort: 8096
-              protocol: TCP
-            - containerPort: 7359
-              protocol: UDP
-          # env:
-          #   - name: PUID     # équivalent --user uid:gid
-          #     value: "<uid>"
-          #   - name: PGID
-          #     value: "<gid>"
           volumeMounts:
-            - name: jellyfin-config
+            - name: config
               mountPath: /config
-            # - name: jellyfin-cache
-            #   mountPath: /cache
-            - name: jellyfin-media
-              mountPath: /media
-              readOnly: true  # 🔹 en lecture seule pour la bibliothèque
+            - name: movies
+              mountPath: /media/movies
+            - name: shows
+              mountPath: /media/shows
       volumes:
-        - name: jellyfin-config
+        - name: config
           persistentVolumeClaim:
-            claimName: jellyfin-config-pvc
-        # - name: jellyfin-cache
-        #   hostPath:
-        #     path: "/path/to/cache"
-        #     type: DirectoryOrCreate
-        - name: jellyfin-media
+            claimName: jellyfin-pvc
+        - name: movies
           hostPath:
-            path: "/mnt/shared_data/movies"
+            path: /mnt/shared_data/movies/movies
             type: Directory
+        - name: shows
+          hostPath:
+            path: /mnt/shared_data/movies/shows
+            type: Directory
+
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transmission
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transmission
+  template:
+    metadata:
+      labels:
+        app: transmission
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: transmission
+          image: lscr.io/linuxserver/transmission:4.0.5
+          ports:
+            - containerPort: 9091
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: downloads
+              mountPath: /downloads
+            - name: movies
+              mountPath: /media/movies
+            - name: shows
+              mountPath: /media/shows
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: transmission-pvc
+        - name: downloads
+          hostPath:
+            path: /mnt/shared_data/movies/downloads
+            type: Directory
+        - name: movies
+          hostPath:
+            path: /mnt/shared_data/movies/movies
+            type: Directory
+        - name: shows
+          hostPath:
+            path: /mnt/shared_data/movies/shows
+            type: Directory
+
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:5.3.6
+          ports:
+            - containerPort: 7878
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: downloads
+              mountPath: /downloads/complete
+            - name: movies
+              mountPath: /movies
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: radarr-pvc
+        - name: downloads
+          hostPath:
+            path: /mnt/shared_data/movies/downloads
+            type: Directory
+        - name: movies
+          hostPath:
+            path: /mnt/shared_data/movies/movies
+            type: Directory
+
+
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarr
+  template:
+    metadata:
+      labels:
+        app: sonarr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: sonarr
+          image: lscr.io/linuxserver/sonarr:4.0.2
+          ports:
+            - containerPort: 8989
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: downloads
+              mountPath: /downloads/complete
+            - name: shows
+              mountPath: /shows
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: sonarr-pvc
+        - name: downloads
+          hostPath:
+            path: /mnt/shared_data/movies/downloads
+            type: Directory
+        - name: shows
+          hostPath:
+            path: /mnt/shared_data/movies/shows
+            type: Directory
+
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prowlarr
+  template:
+    metadata:
+      labels:
+        app: prowlarr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: prowlarr
+          image: lscr.io/linuxserver/prowlarr:1.13.3
+          ports:
+            - containerPort: 9696
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: prowlarr-pvc
+
+            
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyseerr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyseerr
+  template:
+    metadata:
+      labels:
+        app: jellyseerr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: jellyseerr
+          image: docker.io/fallenbagel/jellyseerr:1.7.0
+          ports:
+            - containerPort: 5055
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: jellyseerr-pvc
