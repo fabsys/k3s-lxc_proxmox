@@ -3,45 +3,48 @@ source:
   revision: main
 
 apps:
+# System Apps
   - appName: metallb
-    path: cluster/apps/metallb
+    path: cluster/apps/system/metallb
     namespace: metallb-system
   - appName: ingress-nginx-private
-    path: cluster/apps/ingress-nginx-private
+    path: cluster/apps/system/ingress-nginx-private
     namespace: ingress-nginx-private
   - appName: ingress-nginx-public
-    path: cluster/apps/ingress-nginx-public
+    path: cluster/apps/system/ingress-nginx-public
     namespace: ingress-nginx-public
+  - appName: kuard
+    path: cluster/apps/system/kuard
+    namespace: kuard
+  - appName: sealed-secrets-controller
+    path: cluster/apps/system/sealed-secrets
+    namespace: kube-system
+  - appName: velero
+    path: cluster/apps/system/velero
+    namespace: velero
+  - appName: external-dns
+    path: cluster/apps/system/external-dns
+    namespace: external-dns
+  - appName: cert-manager
+    path: cluster/apps/system/cert-manager
+    namespace: cert-manager
+
+# Others    
   - appName: hajimari
     path: cluster/apps/hajimari
     namespace: hajimari
-  - appName: kuard
-    path: cluster/apps/kuard
-    namespace: kuard
   - appName: nginx-demo
     path: cluster/apps/nginx-demo
     namespace: nginx-demo
-  - appName: sealed-secrets-controller
-    path: cluster/apps/sealed-secrets
-    namespace: kube-system
   - appName: nginx-demo-metallb
     path: cluster/apps/nginx-demo-metallb
     namespace: nginx-demo-metallb
-  - appName: velero
-    path: cluster/apps/velero
-    namespace: velero
   # - appName: k8s-dashboard
   #   path: cluster/apps/k8s-dashboard
   #   namespace: k8s-dashboard
   - appName: no-as-a-service
     path: cluster/apps/no-as-a-service
     namespace: no-as-a-service
-  - appName: external-dns
-    path: cluster/apps/external-dns
-    namespace: external-dns
-  - appName: cert-manager
-    path: cluster/apps/cert-manager
-    namespace: cert-manager
   - appName: plex
     path: cluster/apps/plex
     namespace: plex
