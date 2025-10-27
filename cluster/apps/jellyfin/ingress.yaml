@@ -115,12 +115,12 @@ metadata:
   name: jellyseerr-ingress
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    external-dns.alpha.kubernetes.io/hostname: "jellyseer.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/hostname: "jellyseerr.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
 spec:
   ingressClassName: nginx-public
   rules:
-    - host: jellyseer.fabsys.ovh
+    - host: jellyseerr.fabsys.ovh
       http:
         paths:
           - path: /
@@ -132,5 +132,5 @@ spec:
                   number: 5055
   tls:
     - hosts:
-        - jellyseer.fabsys.ovh
+        - jellyseerr.fabsys.ovh
       secretName: jellyseerr-tls-certificate
