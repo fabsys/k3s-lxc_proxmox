@@ -58,6 +58,8 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        capabilities:
+          add: ["NET_ADMIN"]   # Nécessaire pour changer la route
       initContainers:
         - name: set-gateway
           image: busybox
