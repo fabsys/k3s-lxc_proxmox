@@ -65,8 +65,13 @@ spec:
             - sh
             - -c
             - |
+              apk add --no-cache iproute2
+              echo "Waiting for eth0..."
+              while ! ip link show eth0 >/dev/null 2>&1; do sleep 1; done
+              echo "eth0 ready, setting routes"
               ip route del default || true
-              ip route add default via 192.168.1.104
+              ip route add default via 192.168.1.104 || true
+              echo "Custom gateway set to 192.168.1.104"
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]   # Nécessaire pour changer la route
