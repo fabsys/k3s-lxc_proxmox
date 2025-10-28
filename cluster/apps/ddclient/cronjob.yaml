@@ -20,7 +20,7 @@
 #                 mountPath: /secret
 #           containers:
 #           - name: ddclient
-#             image: linuxserver/ddclient:latest
+#             image: linuxserver/ddclient:4.0.0
 #             volumeMounts:
 #               - name: config
 #                 mountPath: /config

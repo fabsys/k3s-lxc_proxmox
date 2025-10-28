@@ -17,7 +17,7 @@ spec:
       hostNetwork: true   # équivalent --network=host
       containers:
         - name: plex
-          image: plexinc/pms-docker:latest
+          image: plexinc/pms-docker:1.42.2.10156-f737b826c
           env:
             - name: TZ
               value: "Europe/London"

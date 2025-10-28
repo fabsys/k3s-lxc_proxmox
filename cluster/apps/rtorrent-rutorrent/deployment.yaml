@@ -15,7 +15,7 @@ spec:
     spec:
       initContainers:
       - name: network-setup
-        image: alpine:latest
+        image: alpine:3.22.2
         securityContext:
           capabilities:
             add: ["NET_ADMIN"]
