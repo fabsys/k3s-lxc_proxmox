@@ -58,8 +58,6 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-        capabilities:
-          add: ["NET_ADMIN"]   # Nécessaire pour changer la route
       initContainers:
         - name: set-gateway
           image: busybox
@@ -69,9 +67,15 @@ spec:
             - |
               ip route del default
               ip route add default via 192.168.1.104
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]   # Nécessaire pour changer la route
       containers:
         - name: transmission
           image: lscr.io/linuxserver/transmission:4.0.5
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]   # Nécessaire pour changer la route
           ports:
             - containerPort: 9091
           volumeMounts:
