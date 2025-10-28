@@ -134,3 +134,23 @@ spec:
     - hosts:
         - jellyseerr.fabsys.ovh
       secretName: jellyseerr-tls-certificate
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: joal-ingress
+
+spec:
+  ingressClassName: nginx-private
+  rules:
+    - host: joal.services.k8s
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: joal
+                port:
+                  number: 8989

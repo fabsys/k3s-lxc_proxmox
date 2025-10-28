@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: joal-config
+data:
+  config.json: |
+    {
+      "minUploadRate": 20,
+      "maxUploadRate": 1200,
+      "simultaneousSeed": 200,
+      "client": "rtorrent-0.9.6_0.13.6.client",
+      "keepTorrentWithZeroLeechers": true,
+      "uploadRatioTarget": -1.0
+    }

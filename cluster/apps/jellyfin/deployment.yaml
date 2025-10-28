@@ -240,3 +240,57 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: jellyseerr-pvc
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: joal
+  labels:
+    app: joal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: joal
+  template:
+    metadata:
+      labels:
+        app: joal
+    spec:
+      containers:
+        - name: joal
+          image: anthonyraymond/joal:2.1.36
+          args:
+            - "--joal-conf=/data"
+            - "--spring.main.web-environment=true"
+            - "--server.port=$(PORT)"
+            - "--joal.ui.path.prefix=$(SECRET_OBFUSCATION_PATH)"
+            - "--joal.ui.secret-token=$(SECRET_TOKEN)"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: SECRET_OBFUSCATION_PATH
+              value: "joal"
+            - name: SECRET_TOKEN
+              value: "token"
+              # valueFrom:
+              #   secretKeyRef:
+              #     name: joal-secret
+              #     key: secret-token
+          volumeMounts:
+            - name: joal-config
+              mountPath: /data
+            - name: joal-config-json
+              mountPath: /data/config.json
+              subPath: config.json
+      volumes:
+        - name: joal-config
+          persistentVolumeClaim:
+            claimName: joal-config-pvc
+        - name: joal-config-json
+          configMap:
+            name: joal-config
