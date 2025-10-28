@@ -29,6 +29,11 @@ apps:
     path: cluster/apps/system/cert-manager
     namespace: cert-manager
 
+#Plateform
+  - appName: renovate
+    path: cluster/apps/renovate
+    namespace: renovate
+
 # Others    
   - appName: hajimari
     path: cluster/apps/hajimari

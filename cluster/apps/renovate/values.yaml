@@ -1,0 +1,22 @@
+renovate:
+  cronjob:
+    schedule: '0 9 * * *'  # Tous les jours à 09:00
+  renovate:
+    config: |
+      {
+        "platform": "github",
+        "endpoint": "https://api.github.com",
+        "autodiscover": true,
+        "gitAuthor": "Renovate Bot <bot@renovateapp.com>",
+        "repositories": [
+          "fabsys/k3s-lxc_proxmox"
+        ]
+      }
+  existingSecret: renovate-secret
+
+# #Generate Secret
+# kubectl create secret generic renovate-secret \
+#   --from-literal=RENOVATE_TOKEN='ghp_diXXXXXXXXXXX' \
+#   -n renovate --dry-run=client -o yaml \
+# | kubeseal -o yaml -n renovate
+
