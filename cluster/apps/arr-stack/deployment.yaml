@@ -313,15 +313,15 @@ spec:
               #     name: joal-secret
               #     key: secret-token
           volumeMounts:
-            # - name: joal-config
-            #   mountPath: /data
+            - name: joal-torrents
+              mountPath: /data/torrents
             - name: joal-config-json
               mountPath: /data/config.json
               subPath: config.json
       volumes:
-        # - name: joal-config
-        #   persistentVolumeClaim:
-        #     claimName: joal-config-pvc
+        - name: joal-torrents
+          persistentVolumeClaim:
+            claimName: joal-config-pvc
         - name: joal-config-json
           configMap:
             name: joal-config
