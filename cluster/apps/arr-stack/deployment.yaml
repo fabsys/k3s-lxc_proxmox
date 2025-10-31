@@ -279,17 +279,17 @@ spec:
       labels:
         app: joal
     spec:
-      initContainers:
-        - name: init-joal-data
-          image: busybox
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              mkdir -p /data/torrents /data/clients && \
-              echo "Created /data/torrents and /data/clients"
-          volumeMounts:
-            - name: joal-config
-              mountPath: /data
+      # initContainers:
+      #   - name: init-joal-data
+      #     image: busybox
+      #     command: ["/bin/sh", "-c"]
+      #     args:
+      #       - |
+      #         mkdir -p /data/torrents /data/clients && \
+      #         echo "Created /data/torrents and /data/clients"
+      #     volumeMounts:
+      #       - name: joal-config
+      #         mountPath: /data
       containers:
         - name: joal
           image: anthonyraymond/joal:2.1.36
