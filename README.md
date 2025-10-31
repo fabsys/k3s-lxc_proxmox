@@ -1,4 +1,6 @@
 # installation argocd
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
 helm dependency build cluster/argocd/  
 helm upgrade --install argocd cluster/argocd/ --namespace=argocd --create-namespace --wait
 

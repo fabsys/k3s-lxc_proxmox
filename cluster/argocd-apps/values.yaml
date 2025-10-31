@@ -13,9 +13,6 @@ apps:
   - appName: ingress-nginx-public
     path: cluster/apps/system/ingress-nginx-public
     namespace: ingress-nginx-public
-  - appName: kuard
-    path: cluster/apps/system/kuard
-    namespace: kuard
   - appName: sealed-secrets-controller
     path: cluster/apps/system/sealed-secrets
     namespace: kube-system
@@ -28,6 +25,9 @@ apps:
   - appName: cert-manager
     path: cluster/apps/system/cert-manager
     namespace: cert-manager
+  - appName: kured
+    path: cluster/apps/system/kured
+    namespace: kured
 
 #Plateform
   - appName: renovate
@@ -44,6 +44,9 @@ apps:
   - appName: nginx-demo-metallb
     path: cluster/apps/nginx-demo-metallb
     namespace: nginx-demo-metallb
+  # - appName: kuard
+  #   path: cluster/apps/system/kuard
+  #   namespace: kuard
   # - appName: k8s-dashboard
   #   path: cluster/apps/k8s-dashboard
   #   namespace: k8s-dashboard
