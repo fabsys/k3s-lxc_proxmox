@@ -62,3 +62,6 @@ apps:
   - appName: ddclient
     path: cluster/apps/ddclient
     namespace: ddclient
+  - appName: system-upgrade-controller
+    path: cluster/apps/system-upgrade-controller
+    namespace: cattle-system
