@@ -153,4 +153,4 @@ spec:
               service:
                 name: joal
                 port:
-                  number: 8989
+                  number: 8080
