@@ -56,9 +56,9 @@ apps:
   - appName: plex
     path: cluster/apps/plex
     namespace: plex
-  - appName: jellyfin
-    path: cluster/apps/jellyfin
-    namespace: jellyfin
+  - appName: arr-stack
+    path: cluster/apps/arr-stack
+    namespace: arr-stack
   - appName: ddclient
     path: cluster/apps/ddclient
     namespace: ddclient
