@@ -15,5 +15,15 @@
       "groupName": "all non-major dependencies",
       "groupSlug": "all-minor-patch"
     }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["kustomization\\.ya?ml$"],
+      "matchStrings": [
+        "https://github.com/rancher/system-upgrade-controller/releases/download/v(?<currentValue>.*?)/"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "rancher/system-upgrade-controller"
+    }
   ]
 }
