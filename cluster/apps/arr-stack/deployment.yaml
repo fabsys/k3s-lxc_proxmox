@@ -261,7 +261,6 @@ spec:
           persistentVolumeClaim:
             claimName: jellyseerr-pvc
 
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -279,17 +278,20 @@ spec:
       labels:
         app: joal
     spec:
-      # initContainers:
-      #   - name: init-joal-data
-      #     image: busybox
-      #     command: ["/bin/sh", "-c"]
-      #     args:
-      #       - |
-      #         mkdir -p /data/torrents /data/clients && \
-      #         echo "Created /data/torrents and /data/clients"
-      #     volumeMounts:
-      #       - name: joal-config
-      #         mountPath: /data
+      initContainers:
+        - name: init-joal-data
+          image: busybox
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mkdir -p /data/torrents /data/clients && \
+              cp /config/config.json /data/config.json && \
+              echo "Copied config.json to /data"
+          volumeMounts:
+            - name: joal-config
+              mountPath: /config   # On monte le ConfigMap ici
+            - name: joal-data
+              mountPath: /data     # On monte le PV pour Joal
       containers:
         - name: joal
           image: anthonyraymond/joal:2.1.36
@@ -308,20 +310,13 @@ spec:
               value: "joal"
             - name: SECRET_TOKEN
               value: "token"
-              # valueFrom:
-              #   secretKeyRef:
-              #     name: joal-secret
-              #     key: secret-token
           volumeMounts:
-            - name: joal-torrents
-              mountPath: /data/torrents
-            - name: joal-config-json
-              mountPath: /data/config.json
-              subPath: config.json
+            - name: joal-data
+              mountPath: /data
       volumes:
-        - name: joal-torrents
-          persistentVolumeClaim:
-            claimName: joal-config-pvc
-        - name: joal-config-json
+        - name: joal-config
           configMap:
             name: joal-config
+        - name: joal-data
+          persistentVolumeClaim:
+            claimName: joal-config-pvc
