@@ -287,6 +287,10 @@ spec:
               mkdir -p /data/torrents /data/clients && \
               cp /config/config.json /data/config.json && \
               echo "Copied config.json to /data"
+              mkdir -p /data/torrents /data/clients && \
+              git clone --depth 1 https://github.com/anthonyraymond/joal.git /tmp/joal && \
+              cp -r /tmp/joal/resources/clients/* /data/clients/ && \
+              echo "Copied all client files"
           volumeMounts:
             - name: joal-config
               mountPath: /config   # On monte le ConfigMap ici
@@ -312,7 +316,7 @@ spec:
               value: "token"
           volumeMounts:
             - name: joal-data
-              mountPath: /data/torrents
+              mountPath: /data
       volumes:
         - name: joal-config
           configMap:
