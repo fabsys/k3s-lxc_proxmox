@@ -1,7 +1,7 @@
 no-as-a-service:
   ingress:
     enabled: true
-    className: "nginx"
+    className: "nginx-public"
     hosts:
       - host: no-chart.services.k8s
         paths:
