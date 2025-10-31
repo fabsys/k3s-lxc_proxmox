@@ -280,7 +280,7 @@ spec:
     spec:
       initContainers:
         - name: init-joal-data
-          image: busybox
+          image: alpine/git
           command: ["/bin/sh", "-c"]
           args:
             - |
