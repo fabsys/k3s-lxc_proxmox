@@ -5,5 +5,5 @@ name: k8s-dashboard
 version: 7.13.0
 dependencies:
   - name: kubernetes-dashboard
-    version: 7.13.0
+    version: 7.14.0
     repository: https://kubernetes.github.io/dashboard
