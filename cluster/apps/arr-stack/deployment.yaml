@@ -312,7 +312,7 @@ spec:
               value: "token"
           volumeMounts:
             - name: joal-data
-              mountPath: /data
+              mountPath: /data/torrents
       volumes:
         - name: joal-config
           configMap:
