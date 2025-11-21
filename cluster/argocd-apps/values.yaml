@@ -65,3 +65,6 @@ apps:
   - appName: system-upgrade-controller
     path: cluster/apps/system-upgrade-controller
     namespace: cattle-system
+  - appName: gluetun
+    path: cluster/apps/gluetun
+    namespace: gluetun

@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpn-gateway
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vpn-gateway
+  template:
+    metadata:
+      labels:
+        app: vpn-gateway
+    spec:
+      containers:
+        - name: gluetun
+          image: qmcgaw/gluetun
+          resources:
+            limits:
+              tun.cap: 1
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "cyberghost"
+            - name: VPN_TYPE
+              value: "openvpn"
+            - name: SERVER_COUNTRIES
+              value: "France" 
+            - name: OPENVPN_PROTOCOL
+              value: "udp"
+            
+            # --- Injection sécurisée des identifiants ---
+            # Au lieu de 'value', on utilise 'valueFrom' qui pointe vers le secret
+            - name: OPENVPN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-sensitive-data # Le nom du secret (généré par SealedSecret)
+                  key: OPENVPN_USER        # La clé dans le secret
+            
+            - name: OPENVPN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-sensitive-data
+                  key: OPENVPN_PASSWORD
+
+            # --- Config Proxies ---
+            - name: HTTPPROXY
+              value: "on"
+            - name: HTTPPROXY_PORT
+              value: "8888"
+            - name: SOCK5_PROXY_ENABLED
+              value: "on"
+            - name: SHADOWSOCKS
+              value: "off"
+              
+          ports:
+            - containerPort: 8888
+            - containerPort: 1080
+            
+          volumeMounts:
+            - name: gluetun-data
+              mountPath: /gluetun
+            
+            # Injection des certificats depuis le MÊME secret
+            - name: vpn-certs
+              mountPath: /gluetun/client.key
+              subPath: client.key
+              readOnly: true
+            - name: vpn-certs
+              mountPath: /gluetun/client.crt
+              subPath: client.crt
+              readOnly: true
+            - name: vpn-certs
+              mountPath: /gluetun/ca.crt
+              subPath: ca.crt
+              readOnly: true
+
+      volumes:
+        - name: gluetun-data
+          emptyDir: {}
+        # Définition du volume basé sur le secret
+        - name: vpn-certs
+          secret:
+            secretName: vpn-sensitive-data # Le secret déchiffré par le controller SealedSecret
+            items:
+              - key: client.key
+                path: client.key
+              - key: client.crt
+                path: client.crt
+              - key: ca.crt
+                path: ca.crt
+
+# kubectl create secret generic vpn-sensitive-data \
+#   --from-file=client.key=client.key \
+#   --from-file=client.crt=client.crt \
+#   --from-file=ca.crt=ca.crt \
+#   --from-literal=OPENVPN_USER=XXXXXXX \
+#   --from-literal=OPENVPN_PASSWORD=XXXXXX \
+#   -n gluetun --dry-run=client -o yaml \
+# | kubeseal -o yaml -n gluetun

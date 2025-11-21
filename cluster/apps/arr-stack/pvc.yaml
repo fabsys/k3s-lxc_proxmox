@@ -13,7 +13,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: transmission-pvc
+  name: qbittorrent-pvc
 spec:
   accessModes:
     - ReadWriteOnce

@@ -41,48 +41,72 @@ spec:
 
 
 
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: transmission
+  name: qbittorrent
+  namespace: media
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: transmission
+      app: qbittorrent
   template:
     metadata:
       labels:
-        app: transmission
+        app: qbittorrent
     spec:
       securityContext:
         fsGroup: 1000
+      
+      # --- C'est ici que la magie opère ---
       initContainers:
-        - name: set-gateway
+        - name: configure-proxy
           image: busybox
-          command:
-            - sh
-            - -c
+          command: ["sh", "-c"]
+          args:
             - |
-              apk add --no-cache iproute2
-              echo "Waiting for eth0..."
-              while ! ip link show eth0 >/dev/null 2>&1; do sleep 1; done
-              echo "eth0 ready, setting routes"
-              ip route del default || true
-              ip route add default via 192.168.1.104 || true
-              echo "Custom gateway set to 192.168.1.104"
-          securityContext:
-            capabilities:
-              add: ["NET_ADMIN"]   # Nécessaire pour changer la route
+              echo "Configuration du Proxy SOCKS5..."
+              CONF_FILE="/config/qBittorrent/qBittorrent.conf"
+              
+              # 1. On s'assure que le dossier existe
+              mkdir -p /config/qBittorrent
+              
+              # 2. Si le fichier n'existe pas encore, on le crée avec l'en-tête
+              if [ ! -f "$CONF_FILE" ]; then
+                echo "[Preferences]" > "$CONF_FILE"
+              fi
+
+              # 3. On supprime les anciennes lignes de proxy pour éviter les doublons
+              sed -i '/Connection\\Proxy/d' "$CONF_FILE"
+              
+              # 4. On injecte la nouvelle configuration
+              # Note : Type=2 correspond à SOCKS5 dans qBittorrent
+              echo "Connection\Proxy\IP=vpn-service.gluetun" >> "$CONF_FILE"
+              echo "Connection\Proxy\Port=1080" >> "$CONF_FILE"
+              echo "Connection\Proxy\Type=2" >> "$CONF_FILE"
+              echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
+              echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE" 
+              
+              echo "Configuration Proxy terminée."
+          volumeMounts:
+            - name: config
+              mountPath: /config
+
       containers:
-        - name: transmission
-          image: lscr.io/linuxserver/transmission:4.0.5
-          securityContext:
-            capabilities:
-              add: ["NET_ADMIN"]   # Nécessaire pour changer la route
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:5.1.4-libtorrentv1
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Paris"
+            - name: WEBUI_PORT
+              value: "8080"
           ports:
-            - containerPort: 9091
+            - containerPort: 8080
           volumeMounts:
             - name: config
               mountPath: /config
@@ -95,7 +119,7 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: transmission-pvc
+            claimName: qbittorrent-pvc
         - name: downloads
           hostPath:
             path: /mnt/shared_data/movies/downloads
