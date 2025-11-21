@@ -83,9 +83,12 @@ spec:
               # Note : Type=2 correspond à SOCKS5 dans qBittorrent
               echo "Connection\Proxy\IP=vpn-service.gluetun" >> "$CONF_FILE"
               echo "Connection\Proxy\Port=8888" >> "$CONF_FILE"
-              echo "Connection\Proxy\Type=1" >> "$CONF_FILE"
+              echo "Connection\Proxy\Type=HTTP" >> "$CONF_FILE"
               echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
-              echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE" 
+              echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE"
+              echo "WebUI\LocalHostAuth=false" >> "$CONF_FILE"
+              echo "WebUI\Password_PBKDF2="@ByteArray(kXlUT7pDVRO7mOd0068/xg==:Vs0INmllNGhtsCXMJK3a56kYR/bk7g5ePwG9Jy2cFm/Q3OmaqkdwNCmgrzIZfO5ASa92QqGAEjMY1Nbc68TzSw==)" >> "$CONF_FILE"
+
               
               echo "Configuration Proxy terminée."
           volumeMounts:
