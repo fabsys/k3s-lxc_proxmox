@@ -47,10 +47,10 @@ spec:
               value: "on"
             - name: HTTPPROXY_PORT
               value: "8888"
-            - name: SOCKS5_PROXY_ENABLED
-              value: "on"
-            - name: SHADOWSOCKS
-              value: "off"
+            # - name: SOCKS5_PROXY_ENABLED  
+            #   value: "on"
+            - name: FIREWALL_INPUT_SUBNETS
+              value: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
               
           ports:
             - containerPort: 8888
