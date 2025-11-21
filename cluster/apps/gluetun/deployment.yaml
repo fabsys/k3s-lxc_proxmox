@@ -55,6 +55,8 @@ spec:
               value: "off"
             - name: FIREWALL_DEBUG
               value: "on"
+            - name: FIREWALL_INPUT_PORTS
+              value: "8888,1080"
 
               
           ports:
