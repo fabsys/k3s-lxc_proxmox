@@ -15,9 +15,6 @@ spec:
       containers:
         - name: gluetun
           image: qmcgaw/gluetun
-          resources:
-            limits:
-              tun.cap: 1
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
