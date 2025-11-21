@@ -47,7 +47,7 @@ spec:
               value: "on"
             - name: HTTPPROXY_PORT
               value: "8888"
-            - name: SOCK5_PROXY_ENABLED
+            - name: SOCKS5_PROXY_ENABLED
               value: "on"
             - name: SHADOWSOCKS
               value: "off"
