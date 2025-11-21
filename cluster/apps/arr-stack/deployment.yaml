@@ -82,8 +82,8 @@ spec:
               # 4. On injecte la nouvelle configuration
               # Note : Type=2 correspond à SOCKS5 dans qBittorrent
               echo "Connection\Proxy\IP=vpn-service.gluetun" >> "$CONF_FILE"
-              echo "Connection\Proxy\Port=1080" >> "$CONF_FILE"
-              echo "Connection\Proxy\Type=2" >> "$CONF_FILE"
+              echo "Connection\Proxy\Port=8888" >> "$CONF_FILE"
+              echo "Connection\Proxy\Type=1" >> "$CONF_FILE"
               echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
               echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE" 
               
