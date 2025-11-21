@@ -87,7 +87,7 @@ spec:
               echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
               echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE"
               echo "WebUI\LocalHostAuth=false" >> "$CONF_FILE"
-              echo 'WebUI\Password_PBKDF2="@ByteArray(kXlUT7pDVRO7mOd0068/xg==:Vs0INmllNGhtsCXMJK3a56kYR/bk7g5ePwG9Jy2cFm/Q3OmaqkdwNCmgrzIZfO5ASa92QqGAEjMY1Nbc68TzSw==)' >> "$CONF_FILE"
+              #echo 'WebUI\Password_PBKDF2="@ByteArray(kXlUT7pDVRO7mOd0068/xg==:Vs0INmllNGhtsCXMJK3a56kYR/bk7g5ePwG9Jy2cFm/Q3OmaqkdwNCmgrzIZfO5ASa92QqGAEjMY1Nbc68TzSw==)' >> "$CONF_FILE"
               echo "Session\DefaultSavePath=/Downloads" >> "$CONF_FILE"
               
               echo "Configuration Proxy terminée."
