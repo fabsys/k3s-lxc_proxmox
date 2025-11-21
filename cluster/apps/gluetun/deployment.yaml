@@ -24,7 +24,7 @@ spec:
             - name: VPN_TYPE
               value: "openvpn"
             - name: SERVER_COUNTRIES
-              value: "France" 
+              value: "Netherlands" 
             - name: OPENVPN_PROTOCOL
               value: "udp"
             
