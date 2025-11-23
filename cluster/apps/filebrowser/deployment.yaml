@@ -19,14 +19,12 @@ spec:
       containers:
         - name: filebrowser
           image: filebrowser/filebrowser:v2.27.0
-          # --- CORRECTION ICI : On ne met que les options ---
           args:
-            - "--noauth"
-            - "--port=80"
-            - "--root=/data"
-            - "--database=/config/filebrowser.db" 
-            - "--branding.name=Mon Serveur"
-            - "--branding.disableExternal"
+            - "--noauth"                # Pas de mot de passe (pour le réseau local)
+            - "--address=0.0.0.0"       # INDISPENSABLE pour que K8s puisse y accéder
+            - "--port=80"               # Port interne
+            - "--root=/data"            # Le dossier à explorer
+            - "--database=/config/filebrowser.db" # Sauvegarde des réglages
           ports:
             - containerPort: 80
           volumeMounts:
