@@ -68,3 +68,6 @@ apps:
   - appName: gluetun
     path: cluster/apps/gluetun
     namespace: gluetun
+  - appName: filebrowser
+    path: cluster/apps/filebrowser
+    namespace: filebrowser

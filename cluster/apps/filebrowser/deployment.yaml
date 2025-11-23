@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filebrowser
+  labels:
+    app: filebrowser
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: filebrowser
+  template:
+    metadata:
+      labels:
+        app: filebrowser
+    spec:
+      # On utilise l'utilisateur root ici pour éviter les problèmes de droits
+      # lors de la suppression/déplacement de fichiers créés par Radarr (1000)
+      # ou on peut forcer le PUID/PGID si l'image le supporte, mais Filebrowser est permissif.
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: filebrowser
+          image: filebrowser/filebrowser:v2.27.0
+          args:
+            - "/filebrowser"
+            - "--noauth"  # ATTENTION : Enlève la connexion par mot de passe (pratique en local, dangereux si exposé sur internet)
+            - "--port=80"
+            - "--root=/data"
+            - "--database=/config/filebrowser.db"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/shared_data/movies
+            type: Directory
+        - name: config
+          emptyDir: {} # La config (utilisateurs) est reset au redémarrage (suffisant pour juste explorer)
+
