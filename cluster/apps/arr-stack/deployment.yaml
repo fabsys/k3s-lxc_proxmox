@@ -1,4 +1,7 @@
 ---
+# ==========================================
+# JELLYFIN
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,24 +26,23 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: movies
-              mountPath: /media/movies
-            - name: shows
-              mountPath: /media/shows
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: jellyfin-pvc
-        - name: movies
+        # Volume parent qui contient /movies, /shows et /downloads
+        - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies/movies
-            type: Directory
-        - name: shows
-          hostPath:
-            path: /mnt/shared_data/movies/shows
+            path: /mnt/shared_data/movies
             type: Directory
 
 ---
+# ==========================================
+# QBITTORRENT
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -58,39 +60,36 @@ spec:
       securityContext:
         fsGroup: 1000
       
-      # --- C'est ici que la magie opère ---
       initContainers:
-        - name: configure-proxy
+        - name: configure-proxy-and-paths
           image: busybox
           command: ["sh", "-c"]
           args:
             - |
-              echo "Configuration du Proxy SOCKS5..."
+              echo "Configuration qBittorrent (Proxy & Paths)..."
               CONF_FILE="/config/qBittorrent/qBittorrent.conf"
-              
-              # 1. On s'assure que le dossier existe
               mkdir -p /config/qBittorrent
               
-              # 2. Si le fichier n'existe pas encore, on le crée avec l'en-tête
               if [ ! -f "$CONF_FILE" ]; then
                 echo "[Preferences]" > "$CONF_FILE"
               fi
 
-              # 3. On supprime les anciennes lignes de proxy pour éviter les doublons
+              # Nettoyage des anciennes configs pour éviter les doublons
               sed -i '/Connection\\Proxy/d' "$CONF_FILE"
+              sed -i '/Session\\DefaultSavePath/d' "$CONF_FILE"
               
-              # 4. On injecte la nouvelle configuration
-              # Note : Type=2 correspond à SOCKS5 dans qBittorrent
+              # Injection Proxy SOCKS5 (Gluetun)
               echo "Connection\Proxy\IP=vpn-service.gluetun" >> "$CONF_FILE"
               echo "Connection\Proxy\Port=8888" >> "$CONF_FILE"
               echo "Connection\Proxy\Type=HTTP" >> "$CONF_FILE"
               echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
               echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE"
               echo "WebUI\LocalHostAuth=false" >> "$CONF_FILE"
-              #echo 'WebUI\Password_PBKDF2="@ByteArray(kXlUT7pDVRO7mOd0068/xg==:Vs0INmllNGhtsCXMJK3a56kYR/bk7g5ePwG9Jy2cFm/Q3OmaqkdwNCmgrzIZfO5ASa92QqGAEjMY1Nbc68TzSw==)' >> "$CONF_FILE"
-              echo "Session\DefaultSavePath=/Downloads" >> "$CONF_FILE"
               
-              echo "Configuration Proxy terminée."
+              # Configuration du chemin de téléchargement unifié
+              echo "Session\DefaultSavePath=/data/downloads" >> "$CONF_FILE"
+              
+              echo "Configuration terminée."
           volumeMounts:
             - name: config
               mountPath: /config
@@ -112,32 +111,22 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: downloads
-              mountPath: /Downloads
-            - name: movies
-              mountPath: /media/movies
-            - name: shows
-              mountPath: /media/shows
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: qbittorrent-pvc
-        - name: downloads
+        - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies/downloads
+            path: /mnt/shared_data/movies
             type: Directory
-        - name: movies
-          hostPath:
-            path: /mnt/shared_data/movies/movies
-            type: Directory
-        - name: shows
-          hostPath:
-            path: /mnt/shared_data/movies/shows
-            type: Directory
-
-
 
 ---
+# ==========================================
+# RADARR
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -162,27 +151,22 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: downloads
-              mountPath: /downloads/complete
-            - name: movies
-              mountPath: /movies
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: radarr-pvc
-        - name: downloads
+        - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies/downloads
+            path: /mnt/shared_data/movies
             type: Directory
-        - name: movies
-          hostPath:
-            path: /mnt/shared_data/movies/movies
-            type: Directory
-
-
-
 
 ---
+# ==========================================
+# SONARR
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -207,26 +191,22 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: downloads
-              mountPath: /downloads/complete
-            - name: shows
-              mountPath: /shows
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: sonarr-pvc
-        - name: downloads
+        - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies/downloads
+            path: /mnt/shared_data/movies
             type: Directory
-        - name: shows
-          hostPath:
-            path: /mnt/shared_data/movies/shows
-            type: Directory
-
-
 
 ---
+# ==========================================
+# PROWLARR
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -256,8 +236,10 @@ spec:
           persistentVolumeClaim:
             claimName: prowlarr-pvc
 
-            
 ---
+# ==========================================
+# JELLYSEERR
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -288,6 +270,9 @@ spec:
             claimName: jellyseerr-pvc
 
 ---
+# ==========================================
+# JOAL
+# ==========================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -319,9 +304,9 @@ spec:
               echo "Copied all client files"
           volumeMounts:
             - name: joal-config
-              mountPath: /config   # On monte le ConfigMap ici
+              mountPath: /config
             - name: joal-data
-              mountPath: /data     # On monte le PV pour Joal
+              mountPath: /data
       containers:
         - name: joal
           image: anthonyraymond/joal:2.1.36
