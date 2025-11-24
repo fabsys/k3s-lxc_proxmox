@@ -223,6 +223,45 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      
+      initContainers:
+        - name: download-custom-defs
+          image: alpine:latest
+          # On monte le même volume que Prowlarr pour y écrire le fichier
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "[Init] Démarrage du téléchargement des définitions..."
+              
+              # Installation de curl (alpine est très léger)
+              apk add --no-cache curl
+              
+              # Variables
+              DEST="/config/Definitions/Custom"
+              URL="https://gist.githubusercontent.com/Clemv95/8bfded23ef23ec78f6678896f42a2b60/raw/ygg-api-magnet.yml"
+              
+              # Création du dossier si inexistant
+              mkdir -p "$DEST"
+              
+              # Téléchargement
+              echo "[Init] Téléchargement depuis $URL"
+              if curl -fsSL "$URL" -o "$DEST/ygg-api-magnet.yml"; then
+                  echo "[Init] Téléchargement réussi."
+                  
+                  # Gestion des permissions (CRITIQUE pour que Prowlarr puisse le lire)
+                  # On force l'utilisateur 1000 (celui utilisé par l'image linuxserver)
+                  chown 1000:1000 "$DEST/ygg-api-magnet.yml"
+                  chmod 644 "$DEST/ygg-api-magnet.yml"
+                  
+                  echo "[Init] Permissions appliquées."
+              else
+                  echo "[Init] ERREUR : Impossible de télécharger le fichier."
+                  exit 1
+              fi
+
       containers:
         - name: prowlarr
           image: lscr.io/linuxserver/prowlarr:1.13.3
