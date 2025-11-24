@@ -234,33 +234,38 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "[Init] Démarrage du téléchargement des définitions..."
+              echo "[Init] Vérification des définitions personnalisées..."
               
-              # Installation de curl (alpine est très léger)
+              # Installation de curl
               apk add --no-cache curl
               
               # Variables
               DEST="/config/Definitions/Custom"
+              FILE="$DEST/ygg-api-magnet.yml"
               URL="https://gist.githubusercontent.com/Clemv95/8bfded23ef23ec78f6678896f42a2b60/raw/ygg-api-magnet.yml"
               
-              # Création du dossier si inexistant
               mkdir -p "$DEST"
               
-              # Téléchargement
-              echo "[Init] Téléchargement depuis $URL"
-              if curl -fsSL "$URL" -o "$DEST/ygg-api-magnet.yml"; then
-                  echo "[Init] Téléchargement réussi."
+              if [ -f "$FILE" ]; then
+                  echo "[Init] Le fichier existe déjà. Pas de téléchargement nécessaire."
                   
-                  # Gestion des permissions (CRITIQUE pour que Prowlarr puisse le lire)
-                  # On force l'utilisateur 1000 (celui utilisé par l'image linuxserver)
-                  chown 1000:1000 "$DEST/ygg-api-magnet.yml"
-                  chmod 644 "$DEST/ygg-api-magnet.yml"
-                  
-                  echo "[Init] Permissions appliquées."
+                  # Optionnel : On réapplique quand même les droits au cas où
+                  chown 1000:1000 "$FILE"
+                  chmod 644 "$FILE"
               else
-                  echo "[Init] ERREUR : Impossible de télécharger le fichier."
-                  exit 1
+                  echo "[Init] Fichier introuvable. Téléchargement en cours..."
+                  
+                  if curl -fsSL "$URL" -o "$FILE"; then
+                      echo "[Init] Téléchargement réussi."
+                      chown 1000:1000 "$FILE"
+                      chmod 644 "$FILE"
+                      echo "[Init] Permissions appliquées."
+                  else
+                      echo "[Init] ERREUR : Impossible de télécharger le fichier."
+                      exit 1
+                  fi
               fi
+              echo "[Init] Terminé."
 
       containers:
         - name: prowlarr
