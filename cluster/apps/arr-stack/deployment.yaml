@@ -269,7 +269,7 @@ spec:
 
       containers:
         - name: prowlarr
-          image: lscr.io/linuxserver/prowlarr:1.13.3
+          image: lscr.io/linuxserver/prowlarr:2.3.0.5236-ls132
           ports:
             - containerPort: 9696
           volumeMounts:
