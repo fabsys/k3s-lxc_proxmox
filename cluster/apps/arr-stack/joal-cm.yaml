@@ -6,8 +6,8 @@ data:
   config.json: |
     {
       "minUploadRate": 20,
-      "maxUploadRate": 1200,
-      "simultaneousSeed": 200,
+      "maxUploadRate": 270,
+      "simultaneousSeed": 20,
       "client": "rtorrent-0.9.6_0.13.6.client",
       "keepTorrentWithZeroLeechers": true,
       "uploadRatioTarget": -1.0
