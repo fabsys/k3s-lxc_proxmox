@@ -314,108 +314,104 @@ spec:
             claimName: jellyseerr-pvc
 
 ---
-# ==========================================
-# JOAL
-# ==========================================
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: joal
-  labels:
-    app: joal
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: joal
-  template:
-    metadata:
-      labels:
-        app: joal
-    spec:
-      securityContext:
-        fsGroup: 1000
-      initContainers:
-        - name: init-local-data
-          image: anthonyraymond/joal:2.1.36
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              echo "[Init] Démarrage de la synchronisation des données..."
+# # ==========================================
+# # JOAL
+# # ==========================================
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: joal
+#   labels:
+#     app: joal
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: joal
+#   template:
+#     metadata:
+#       labels:
+#         app: joal
+#     spec:
+#       securityContext:
+#         fsGroup: 1000
+#       initContainers:
+#         - name: init-local-data
+#           image: anthonyraymond/joal:2.1.36
+#           command: ["/bin/sh", "-c"]
+#           args:
+#             - |
+#               echo "[Init] Démarrage de la synchronisation des données..."
               
-              # 1. Copie des fichiers d'origine de l'image (/data) vers le PVC (/pvc-data)
-              # -r : Récursif
-              # -n : No-clobber (ne remplace PAS les fichiers existants pour garder votre historique)
-              # Cela va créer le dossier 'clients' s'il manque, mais garder vos stats si elles existent.
-              cp -rn /data/* /pvc-data/
+#               # 1. Copie des fichiers d'origine de l'image (/data) vers le PVC (/pvc-data)
+#               # -r : Récursif
+#               # -n : No-clobber (ne remplace PAS les fichiers existants pour garder votre historique)
+#               # Cela va créer le dossier 'clients' s'il manque, mais garder vos stats si elles existent.
+#               cp -rn /data/* /pvc-data/
               
-              # 2. Injection forcée de la configuration (depuis le ConfigMap)
-              echo "[Init] Mise à jour de config.json..."
-              cp /config-src/config.json /pvc-data/config.json
+#               # 2. Injection forcée de la configuration (depuis le ConfigMap)
+#               echo "[Init] Mise à jour de config.json..."
+#               cp /config-src/config.json /pvc-data/config.json
               
-              # 3. Correction des permissions
-              echo "[Init] Application des permissions..."
-              chown -R 1000:1000 /pvc-data
+#               # 3. Correction des permissions
+#               echo "[Init] Application des permissions..."
+#               chown -R 1000:1000 /pvc-data
               
-              echo "[Init] Prêt à démarrer."
-          volumeMounts:
-            # On monte le PVC dans un dossier temporaire pour écrire dedans
-            - name: joal-data
-              mountPath: /pvc-data
-            # On monte la source de config
-            - name: joal-config
-              mountPath: /config-src
-            # IMPORTANT : On ne monte PAS /data ici, pour pouvoir lire les fichiers originaux de l'image
+#               echo "[Init] Prêt à démarrer."
+#           volumeMounts:
+#             # On monte le PVC dans un dossier temporaire pour écrire dedans
+#             - name: joal-data
+#               mountPath: /pvc-data
+#             # On monte la source de config
+#             - name: joal-config
+#               mountPath: /config-src
+#             # IMPORTANT : On ne monte PAS /data ici, pour pouvoir lire les fichiers originaux de l'image
 
-      containers:
-        - name: joal
-          image: anthonyraymond/joal:2.1.36
-          args:
-            - "--joal-conf=/data"
-            - "--spring.main.web-environment=true"
-            - "--server.port=$(PORT)"
-            - "--joal.ui.path.prefix=$(SECRET_OBFUSCATION_PATH)"
-            - "--joal.ui.secret-token=$(SECRET_TOKEN)"
-            - "-Dhttp.proxyHost=vpn-service.gluetun"
-            - "-Dhttp.proxyPort=8888"
-            - "-Dhttps.proxyHost=vpn-service.gluetun"
-            - "-Dhttps.proxyPort=8888"
-          ports:
-            - containerPort: 8080
-          env:
-            - name: PORT
-              value: "8080"
-            - name: SECRET_OBFUSCATION_PATH
-              value: "joal"
-            - name: SECRET_TOKEN
-              value: "token"
-            - name: JAVA_TOOL_OPTIONS
-              value: >-
-                -Dhttp.proxyHost=vpn-service.gluetun
-                -Dhttp.proxyPort=8888
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "50m"
-            limits:
-              memory: "512Mi" # Java peut être gourmand, on le limite
-          volumeMounts:
-            # Ici, le PVC remplace /data (qui contient maintenant les fichiers copiés par l'init)
-            - name: joal-data
-              mountPath: /data
-            # Le lien avec qBittorrent (HostPath)
-            - name: torrent-import
-              mountPath: /data/torrents
-      volumes:
-        - name: joal-config
-          configMap:
-            name: joal-config
-        - name: joal-data
-          persistentVolumeClaim:
-            claimName: joal-config-pvc
-        - name: torrent-import
-          hostPath:
-            # mkdir -p /mnt/shared_data/movies/joal-import
-            # chmod 777 /mnt/shared_data/movies/joal-import
-            path: /mnt/shared_data/movies/joal-import
-            type: Directory
+#       containers:
+#         - name: joal
+#           image: anthonyraymond/joal:2.1.36
+#           args:
+#             - "--joal-conf=/data"
+#             - "--spring.main.web-environment=true"
+#             - "--server.port=$(PORT)"
+#             - "--joal.ui.path.prefix=$(SECRET_OBFUSCATION_PATH)"
+#             - "--joal.ui.secret-token=$(SECRET_TOKEN)"
+#           ports:
+#             - containerPort: 8080
+#           env:
+#             - name: PORT
+#               value: "8080"
+#             - name: SECRET_OBFUSCATION_PATH
+#               value: "joal"
+#             - name: SECRET_TOKEN
+#               value: "token"
+#             # - name: JAVA_TOOL_OPTIONS
+#             #   value: >-
+#             #     -Dhttp.proxyHost=vpn-service.gluetun
+#             #     -Dhttp.proxyPort=8888
+#           resources:
+#             requests:
+#               memory: "256Mi"
+#               cpu: "50m"
+#             limits:
+#               memory: "512Mi" # Java peut être gourmand, on le limite
+#           volumeMounts:
+#             # Ici, le PVC remplace /data (qui contient maintenant les fichiers copiés par l'init)
+#             - name: joal-data
+#               mountPath: /data
+#             # Le lien avec qBittorrent (HostPath)
+#             - name: torrent-import
+#               mountPath: /data/torrents
+#       volumes:
+#         - name: joal-config
+#           configMap:
+#             name: joal-config
+#         - name: joal-data
+#           persistentVolumeClaim:
+#             claimName: joal-config-pvc
+#         - name: torrent-import
+#           hostPath:
+#             # mkdir -p /mnt/shared_data/movies/joal-import
+#             # chmod 777 /mnt/shared_data/movies/joal-import
+#             path: /mnt/shared_data/movies/joal-import
+#             type: Directory
