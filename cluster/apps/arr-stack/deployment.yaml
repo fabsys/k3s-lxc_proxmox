@@ -389,9 +389,6 @@ spec:
               value: >-
                 -Dhttp.proxyHost=vpn-service.gluetun
                 -Dhttp.proxyPort=8888
-                -Dhttps.proxyHost=vpn-service.gluetun
-                -Dhttps.proxyPort=8888
-                -Dhttp.nonProxyHosts="localhost|127.0.0.1|10.*|192.168.*|*.cluster.local"
           resources:
             requests:
               memory: "256Mi"
