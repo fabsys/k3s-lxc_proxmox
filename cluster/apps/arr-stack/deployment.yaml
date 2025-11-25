@@ -376,6 +376,10 @@ spec:
             - "--server.port=$(PORT)"
             - "--joal.ui.path.prefix=$(SECRET_OBFUSCATION_PATH)"
             - "--joal.ui.secret-token=$(SECRET_TOKEN)"
+            - "-Dhttp.proxyHost=vpn-service.gluetun"
+            - "-Dhttp.proxyPort=8888"
+            - "-Dhttps.proxyHost=vpn-service.gluetun"
+            - "-Dhttps.proxyPort=8888"
           ports:
             - containerPort: 8080
           env:
