@@ -337,7 +337,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-local-data
-          image: ghcr.io/fabsys/joal:v1.0.1
+          image: ghcr.io/fabsys/joal:v1.0.2
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -369,7 +369,7 @@ spec:
 
       containers:
         - name: joal
-          image: ghcr.io/fabsys/joal:v1.0.1
+          image: ghcr.io/fabsys/joal:v1.0.2
           args:
             - "--joal-conf=/data"
             - "--spring.main.web-environment=true"
