@@ -29,6 +29,8 @@ spec:
             # Montage unique pour l'accès global
             - name: all-media
               mountPath: /data
+            - name: render-device
+              mountPath: /dev/dri
       volumes:
         - name: config
           persistentVolumeClaim:
@@ -37,6 +39,11 @@ spec:
         - name: all-media
           hostPath:
             path: /mnt/shared_data/movies
+            type: Directory
+        # Pour le render materiel
+        - name: render-device
+          hostPath:
+            path: /dev/dri
             type: Directory
 
 ---
