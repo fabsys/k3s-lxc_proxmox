@@ -19,10 +19,11 @@ spec:
       securityContext:
         fsGroup: 1000
         supplementalGroups: [44, 991]
-        privileged: true
       containers:
         - name: jellyfin
           image: docker.io/jellyfin/jellyfin:10.11.3
+          securityContext:
+            privileged: true
           ports:
             - containerPort: 8096
           volumeMounts:
