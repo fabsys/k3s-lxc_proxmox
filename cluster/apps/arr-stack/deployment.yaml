@@ -23,7 +23,7 @@ spec:
         - name: jellyfin
           image: docker.io/jellyfin/jellyfin:10.11.3
           securityContext:
-            privileged: true
+            privileged: true # Obligatoire pour le transcoding hardware, voir si on peut faire mieux ...
           ports:
             - containerPort: 8096
           volumeMounts:
@@ -70,39 +70,39 @@ spec:
       securityContext:
         fsGroup: 1000
       
-      initContainers:
-        - name: configure-proxy-and-paths
-          image: busybox
-          command: ["sh", "-c"]
-          args:
-            - |
-              echo "Configuration qBittorrent (Proxy & Paths)..."
-              CONF_FILE="/config/qBittorrent/qBittorrent.conf"
-              mkdir -p /config/qBittorrent
+      # initContainers:
+      #   - name: configure-proxy-and-paths
+      #     image: busybox
+      #     command: ["sh", "-c"]
+      #     args:
+      #       - |
+      #         echo "Configuration qBittorrent (Proxy & Paths)..."
+      #         CONF_FILE="/config/qBittorrent/qBittorrent.conf"
+      #         mkdir -p /config/qBittorrent
               
-              if [ ! -f "$CONF_FILE" ]; then
-                echo "[Preferences]" > "$CONF_FILE"
-              fi
+      #         if [ ! -f "$CONF_FILE" ]; then
+      #           echo "[Preferences]" > "$CONF_FILE"
+      #         fi
 
-              # Nettoyage des anciennes configs pour éviter les doublons
-              sed -i '/Connection\\Proxy/d' "$CONF_FILE"
-              sed -i '/Session\\DefaultSavePath/d' "$CONF_FILE"
+      #         # Nettoyage des anciennes configs pour éviter les doublons
+      #         sed -i '/Connection\\Proxy/d' "$CONF_FILE"
+      #         sed -i '/Session\\DefaultSavePath/d' "$CONF_FILE"
               
-              # Injection Proxy SOCKS5 (Gluetun)
-              echo "Connection\Proxy\IP=vpn-service.gluetun" >> "$CONF_FILE"
-              echo "Connection\Proxy\Port=8888" >> "$CONF_FILE"
-              echo "Connection\Proxy\Type=HTTP" >> "$CONF_FILE"
-              echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
-              echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE"
-              echo "WebUI\LocalHostAuth=false" >> "$CONF_FILE"
+      #         # Injection Proxy SOCKS5 (Gluetun)
+      #         echo "Connection\Proxy\IP=vpn-service.gluetun" >> "$CONF_FILE"
+      #         echo "Connection\Proxy\Port=8888" >> "$CONF_FILE"
+      #         echo "Connection\Proxy\Type=HTTP" >> "$CONF_FILE"
+      #         echo "Connection\Proxy\LookupDNS=true" >> "$CONF_FILE"
+      #         echo "Connection\Proxy\PeerOnly=false" >> "$CONF_FILE"
+      #         echo "WebUI\LocalHostAuth=false" >> "$CONF_FILE"
               
-              # Configuration du chemin de téléchargement unifié
-              echo "Session\DefaultSavePath=/data/downloads" >> "$CONF_FILE"
+      #         # Configuration du chemin de téléchargement unifié
+      #         echo "Session\DefaultSavePath=/data/downloads" >> "$CONF_FILE"
               
-              echo "Configuration terminée."
-          volumeMounts:
-            - name: config
-              mountPath: /config
+      #         echo "Configuration terminée."
+      #     volumeMounts:
+      #       - name: config
+      #         mountPath: /config
 
       containers:
         - name: qbittorrent
