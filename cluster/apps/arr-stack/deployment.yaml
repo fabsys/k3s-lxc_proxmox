@@ -21,7 +21,7 @@ spec:
         # supplementalGroups: [44, 991]
       containers:
         - name: jellyfin
-          image: docker.io/jellyfin/jellyfin:10.11.3
+          image: docker.io/jellyfin/jellyfin:10.11.4
           securityContext:
             privileged: true # Obligatoire pour le transcoding hardware, voir si on peut faire mieux ...
           ports:
