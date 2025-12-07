@@ -1,12 +1,12 @@
 renovate:
   cronjob:
-    schedule: '0 9 * * *'  # Tous les jours à 09:00
+    schedule: '0 9 * * *'
   renovate:
     config: |
       {
         "platform": "github",
         "endpoint": "https://api.github.com",
-        "autodiscover": true,
+        "autodiscover": false,
         "gitAuthor": "Renovate Bot <bot@renovateapp.com>",
         "repositories": [
           "fabsys/k3s-lxc_proxmox"
