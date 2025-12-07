@@ -3,6 +3,11 @@
   "extends": [
     "config:base"
   ],
+  "enabledManagers": [
+    "github-actions",
+    "dockerfile",
+    "kubernetes"
+  ],
   "packageRules": [
     {
       "matchPackagePatterns": [
