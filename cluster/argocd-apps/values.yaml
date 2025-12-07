@@ -71,3 +71,6 @@ apps:
   - appName: filebrowser
     path: cluster/apps/filebrowser
     namespace: filebrowser
+  - appName: homepage
+    path: cluster/apps/homepage
+    namespace: homepage
