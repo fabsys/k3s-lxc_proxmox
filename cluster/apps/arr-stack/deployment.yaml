@@ -1,0 +1,432 @@
+---
+# ==========================================
+# JELLYFIN
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+    spec:
+      hostname: jellyfin-server
+      securityContext:
+        fsGroup: 1000
+        # supplementalGroups: [44, 991]
+      containers:
+        - name: jellyfin
+          image: docker.io/jellyfin/jellyfin:10.11.4
+          securityContext:
+            privileged: true # Obligatoire pour le transcoding hardware, voir si on peut faire mieux ...
+          ports:
+            - containerPort: 8096
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
+            - name: render-device
+              mountPath: /dev/dri
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: jellyfin-pvc
+        # Volume parent qui contient /movies, /shows et /downloads
+        - name: all-media
+          hostPath:
+            path: /mnt/shared_data/movies
+            type: Directory
+        # Pour le render materiel
+        - name: render-device
+          hostPath:
+            path: /dev/dri
+            type: Directory
+
+---
+# ==========================================
+# QBITTORRENT
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      securityContext:
+        fsGroup: 1000
+      
+      initContainers:
+        - name: init-config
+          image: busybox:latest 
+          env:
+            - name: WEBUI_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: qbittorrent-auth  # Nom du secret
+                  key: password           # Clé du secret
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "[Init] Préparation de la configuration..."
+              
+              # 1. Création du sous-dossier obligatoire pour qBittorrent
+              mkdir -p /pvc-data/qBittorrent
+              
+              # 2. Copie forcée du fichier de conf depuis le ConfigMap vers le PVC
+              # On écrase l'ancien à chaque redémarrage pour être sûr d'avoir la version du ConfigMap
+              echo "[Init] Injection de qBittorrent.conf..."
+              cp /config-src/qBittorrent.conf /pvc-data/qBittorrent/qBittorrent.conf
+              
+              # 3. Correction des permissions (l'init tourne en root)
+              # On met 1000:1000 car c'est le PUID/PGID de l'image LinuxServer
+              echo "[Init] Correction des permissions..."
+              chown -R 1000:1000 /pvc-data
+
+              # 4. LE SED MAGIQUE
+              # On cherche "REPLACE_ME_WITH_REAL_PASSWORD" et on le remplace par le contenu de $WEBUI_PASS
+              # On utilise le séparateur "|" car le hash contient des "/" et des "+"
+              echo "[Init] Injection du mot de passe sécurisé..."
+              sed -i "s|REPLACE_ME_WITH_REAL_PASSWORD|$WEBUI_PASS|g" /pvc-data/qBittorrent/qBittorrent.conf
+              
+              
+              echo "[Init] Terminé."
+          volumeMounts:
+            # Destination (Le PVC, inscriptible)
+            - name: config
+              mountPath: /pvc-data
+            # Source (Le ConfigMap, lecture seule)
+            - name: config-source
+              mountPath: /config-src
+
+      containers:
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:20.04.1
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Paris"
+            - name: WEBUI_PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            # ICI : On monte UNIQUEMENT le PVC. 
+            - name: config
+              mountPath: /config
+            # Montage des medias
+            - name: all-media
+              mountPath: /data
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-pvc
+        - name: config-source
+          configMap:
+            name: qbittorrent-config
+        - name: all-media
+          hostPath:
+            path: /mnt/shared_data/movies
+            type: Directory
+
+---
+# ==========================================
+# RADARR
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:6.0.4
+          ports:
+            - containerPort: 7878
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: radarr-pvc
+        - name: all-media
+          hostPath:
+            path: /mnt/shared_data/movies
+            type: Directory
+
+---
+# ==========================================
+# SONARR
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarr
+  template:
+    metadata:
+      labels:
+        app: sonarr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: sonarr
+          image: lscr.io/linuxserver/sonarr:4.0.16
+          ports:
+            - containerPort: 8989
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Montage unique pour l'accès global
+            - name: all-media
+              mountPath: /data
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: sonarr-pvc
+        - name: all-media
+          hostPath:
+            path: /mnt/shared_data/movies
+            type: Directory
+
+---
+# ==========================================
+# PROWLARR
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prowlarr
+  template:
+    metadata:
+      labels:
+        app: prowlarr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      
+      initContainers:
+        - name: install-custom-defs
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "[Init] Installation des définitions personnalisées..."
+              
+              # Variables
+              DEST_DIR="/config/Definitions/Custom"
+              
+              # 1. Création du dossier cible dans le PVC
+              mkdir -p "$DEST_DIR"
+              
+              # 2. Copie du fichier depuis le ConfigMap (Read-Only) vers le PVC (Writable)
+              cp /config-src/ygg-api-magnet.yml "$DEST_DIR/ygg-api-magnet.yml"
+              
+              # 3. Permissions (PUID 1000)
+              chown 1000:1000 "$DEST_DIR/ygg-api-magnet.yml"
+              chmod 644 "$DEST_DIR/ygg-api-magnet.yml"
+              
+              echo "[Init] Terminé."
+          volumeMounts:
+            # Destination : Le PVC de Prowlarr
+            - name: config
+              mountPath: /config
+            # Source : Le ConfigMap monté en temporaire
+            - name: custom-defs-src
+              mountPath: /config-src
+
+      containers:
+        - name: prowlarr
+          image: lscr.io/linuxserver/prowlarr:2.3.0.5236-ls132
+          ports:
+            - containerPort: 9696
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: prowlarr-pvc
+        # Déclaration du ConfigMap
+        - name: custom-defs-src
+          configMap:
+            name: prowlarr-ygg
+
+---
+# ==========================================
+# JELLYSEERR
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyseerr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyseerr
+  template:
+    metadata:
+      labels:
+        app: jellyseerr
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: jellyseerr
+          image: docker.io/fallenbagel/jellyseerr:2.7.3
+          ports:
+            - containerPort: 5055
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: jellyseerr-pvc
+
+---
+# ==========================================
+# JOAL
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: joal
+  labels:
+    app: joal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: joal
+  template:
+    metadata:
+      labels:
+        app: joal
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: init-local-data
+          image: ghcr.io/fabsys/joal:v1.0.2
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "[Init] Démarrage de la synchronisation des données..."
+              
+              # 1. Copie des fichiers d'origine de l'image (/data) vers le PVC (/pvc-data)
+              # -r : Récursif
+              # -n : No-clobber (ne remplace PAS les fichiers existants pour garder votre historique)
+              # Cela va créer le dossier 'clients' s'il manque, mais garder vos stats si elles existent.
+              cp -rn /data/* /pvc-data/
+              
+              # 2. Injection forcée de la configuration (depuis le ConfigMap)
+              echo "[Init] Mise à jour de config.json..."
+              cp /config-src/config.json /pvc-data/config.json
+              
+              # 3. Correction des permissions
+              echo "[Init] Application des permissions..."
+              chown -R 1000:1000 /pvc-data
+              
+              echo "[Init] Prêt à démarrer."
+          volumeMounts:
+            # On monte le PVC dans un dossier temporaire pour écrire dedans
+            - name: joal-data
+              mountPath: /pvc-data
+            # On monte la source de config
+            - name: joal-config
+              mountPath: /config-src
+            # IMPORTANT : On ne monte PAS /data ici, pour pouvoir lire les fichiers originaux de l'image
+
+      containers:
+        - name: joal
+          image: ghcr.io/fabsys/joal:v1.0.2
+          args:
+            - "--joal-conf=/data"
+            - "--spring.main.web-environment=true"
+            - "--server.port=$(PORT)"
+            - "--joal.ui.path.prefix=$(SECRET_OBFUSCATION_PATH)"
+            - "--joal.ui.secret-token=$(SECRET_TOKEN)"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: SECRET_OBFUSCATION_PATH
+              value: "joal"
+            - name: SECRET_TOKEN
+              value: "token"
+            - name: JAVA_TOOL_OPTIONS
+              value: >-
+                -Dhttp.proxyHost=vpn-service.gluetun
+                -Dhttp.proxyPort=8888
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi" # Java peut être gourmand, on le limite
+          volumeMounts:
+            # Ici, le PVC remplace /data (qui contient maintenant les fichiers copiés par l'init)
+            - name: joal-data
+              mountPath: /data
+            # Le lien avec qBittorrent (HostPath)
+            - name: torrent-import
+              mountPath: /data/torrents
+      volumes:
+        - name: joal-config
+          configMap:
+            name: joal-config
+        - name: joal-data
+          persistentVolumeClaim:
+            claimName: joal-config-pvc
+        - name: torrent-import
+          hostPath:
+            # mkdir -p /mnt/shared_data/movies/joal-import
+            # chmod 777 /mnt/shared_data/movies/joal-import
+            path: /mnt/shared_data/movies/joal-import
+            type: Directory

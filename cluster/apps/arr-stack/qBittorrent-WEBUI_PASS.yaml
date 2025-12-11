@@ -1,0 +1,22 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: qbittorrent-auth
+  namespace: arr-stack
+spec:
+  encryptedData:
+    password: AgB0YWUTvoGUAb1sHDVNDAAA9AxypcHXQNF3Cq8xWjGuWiyTXGg/whVHV1lUb/KSbVceKMSWixPxeE7VMktSeDGky01wstO8GCZCldRg6RPHL/SMMQuzqCNwbPlxnT66B/7jNd1VoRTIN3zD1zHFog2x1xtbeu7ja3pl/xY8ivueJ4I4UPzJ6xWMLSrrC/wz3d5sz3wYT4j6KIxIjpHar/EokVxkSYr3bU2vL7AWBgjQKxSR9C2H7FtyyO+fW2xiow9QE9UFowGAmBH2D+OJvKhjlqIzbkmZgm3C7j4poHW/f+NH2KX9Sjb5jnFhlclvJktis8zNdxdgeJ7Wl/y9WFmpdFHT/jGYFB5HTCyMt1noOFtmMQ0ubHxbhmImQBLd0INQe2vebZwyYbuDgSuCORwpZRon5q8Jg1q2oIVTy9Kr0TwNkaz+4HfwN+MJSsPMhTCsUhqMAavxq0ZUf6V8InwbajxF5F6VlZFV2HkWJFHI6IatzJOLnef7piblI4y4b3RKsjJOxBpVP15vX2XRypSq2yT9Dtg4ZBFY2jMLyh7blgJ2Hj0q5H0Dec8rtacdh7O2hrvOOf9iNWb38MmlWPlQ8SvOy2qVzQPaJwUqqy0OmWGRYpg6ftlm1aomPfL8h2wE2bV4sRghTSex4T0t9lr7qz6H3h3d7Pi90FLNp3nP8h6eUbyKofXp5Qh5CB+iw/MpdZOEqsu5rjlbBZxuP3WP1C7j8i+yt9Zz5hQK3z9XSWEvHRGgYD4VKtnyjm6fwEl3mJK2CWOR9akt/7TCwQ/igN+Oi4jbcUEkW53GWTJqc6wtd+nojwUwN+8QlpEg0dRp8Zzcs0mqZSCH4ttnBRMVfuDhed9d1hi4ISEOsQ==
+  template:
+    metadata:
+      creationTimestamp: null
+      name: qbittorrent-auth
+      namespace: arr-stack
+
+
+
+# kubectl create secret generic qbittorrent-auth \
+#   --from-literal=password='LA VALEUR ENCODER DANS LE FICHIER DE CONF' \
+#   -n arr-stack --dry-run=client -o yaml \
+# | kubeseal -o yaml -n arr-stack

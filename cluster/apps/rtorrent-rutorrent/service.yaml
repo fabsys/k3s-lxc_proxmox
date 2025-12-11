@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtorrent-rutorrent-service
+spec:
+  selector:
+    app: rtorrent-rutorrent
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

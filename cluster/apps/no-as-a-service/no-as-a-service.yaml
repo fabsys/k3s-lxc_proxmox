@@ -1,0 +1,51 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: no-as-a-service
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: no-as-a-service
+#   template:
+#     metadata:
+#       labels:
+#         app: no-as-a-service
+#     spec:
+#       containers:
+#         - name: no-as-a-service
+#           image: ghcr.io/fabsys/no-as-a-service:latest
+#           ports:
+#             - containerPort: 3000
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: no-as-a-service
+# spec:
+#   selector:
+#     app: no-as-a-service
+#   ports:
+#     - protocol: TCP
+#       port: 80
+#       targetPort: 3000
+#   type: ClusterIP
+# ---
+# ---
+# kind: Ingress
+# apiVersion: networking.k8s.io/v1
+# metadata:
+#   name: no-as-a-service
+# spec:
+#   ingressClassName: nginx
+#   rules:
+#     - host: "no.services.k8s"
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: no-as-a-service
+#                 port:
+#                   number: 80

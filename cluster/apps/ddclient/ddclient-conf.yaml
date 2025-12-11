@@ -1,0 +1,15 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: ddclient-config
+  namespace: ddclient
+spec:
+  encryptedData:
+    ddclient.conf: AgAgS5QDxz/ugnBSIojT8Db4SzLV2hyTXNIdE79rvQTVQxMwpSfWfgU20P2clXlWZ+TeGE8Sia6pvMVzqb4X5d9cSVXLWj4dG3P/mOTK+g59hNFcTwTX20KRM4hzpesT69L5sb1F2BaS9UyuxWetxFzx75FoeaMhbwqNpMKhgmhJ8yIQIha1luAy2gN/7nFHHNo0APGjxWMgMtx7aZZ6TN/UDvun0sGcDbHLnzlGwAlS8AmtLtvdyqZQ+c6Tjr1aN3EzHnRY8xxM5mn929JbmuXz5bblT685q5fe+DBsvRvhtJDzcvfo86KcRWY6z3NMSEWdIv/i9/B1w+gEShGsHHRidsRleWJQ7/nZzzd6tENsABre39+VHg/9tAjBtxy876PWAJL3aOGto4osYgqBWgzH25kk8nKezsiTYDlCIWDV5qA0HNRaN4jHjbHgCAKYqeeAFEffW6ZaThUFccKxpLTTb2f8NEvlq2+f7JfXYjPXRveHQZfMtTMRDfBu2Y0eZLI6f0T5dUY75QU3ga2A/PquLYUKtUDiYfa6teLu/KVEFQNKs7cChjGAEcyxToGkhRX2SwiY/kd+3b6l75dSlhydMAJsvkdKJmc25Cy+NXE2p8M3IrsM6pchqkgNSM1voGSdYOkcawub1oSlBWSB35D4iCHHlEzV+ZHyNlUYbXViuH+Wd8uXxo4+ROQD3v4vKA8l/Fsf3KqOe1jOozzemQB3Sr/6kUnGiN01eVVPgGrNQ/8mzBQav122RfOiC5VwHay6ckBHIh5bfI9VZRpxNwwr4+lUQvpm0W647f1A24lE3Tfju+TqNgc4YuY2Ur2enYoInu0gGf+mqYfmrEvt/Qet/DF/F1npVePxCLqZCwjepT8jRKMb6l0LOw8HxJqTVMclzY5mbKpqTNwK9FTfK/cEfzCtTZ8q5xhiYlHw7g4A9/jMt9qLc5vWm42Ug5a8zY8uZdYNPPAWXUMchST9VD7OQjZgOX/Qq7YhAO1RpQECBljuJmU+x2JZqcWiPxsGDRLL7fBojQy8Ut9IHEFIHDxMY/2DRdFhK0Za1B3OS3o137YkuEsytQfVIAuIX1vzot8cG7aqsIYnPgkcWHm0
+  template:
+    metadata:
+      creationTimestamp: null
+      name: ddclient-config
+      namespace: ddclient

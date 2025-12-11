@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-metallb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-metallb
+  template:
+    metadata:
+      labels:
+        app: nginx-metallb
+    spec:
+      containers:
+      - name: nginx-metallb
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html
+        - name: host-data
+          mountPath: /data
+      volumes:
+      - name: html-volume
+        configMap:
+          name: nginx-metallb-html
+      #Test de montage d'un dossier sur le node
+      - name: host-data
+        hostPath:
+          path: /mnt/data_test       # le répertoire sur le worker
+          type: DirectoryOrCreate
+
+
+

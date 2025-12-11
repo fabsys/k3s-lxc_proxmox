@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rtorrent-rutorrent-ingress
+spec:
+  ingressClassName: nginx-private
+  rules:
+  - host: argocd.services.k8s
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rtorrent-rutorrent-service
+            port:
+              number: 80

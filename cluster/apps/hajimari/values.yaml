@@ -1,0 +1,21 @@
+hajimari:
+  image:
+    # TODO remove this https://github.com/toboshii/hajimari/blob/main/charts/hajimari/values.yaml
+    # https://github.com/toboshii/hajimari/issues/31#issuecomment-1029018459
+    tag: v0.2.0
+  ingress:
+    main:
+      enabled: true
+      ingressClassName: nginx-private
+      annotations:
+        hajimari.io/enable: 'false'
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      hosts:
+        - host: home.services.k8s
+          paths:
+            - path: /
+              pathType: Prefix
+  hajimari:
+    defaultEnable: true
+    namespaceSelector:
+      any: true

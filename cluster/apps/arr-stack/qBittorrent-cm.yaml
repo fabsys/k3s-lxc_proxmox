@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qbittorrent-config
+data:
+  qBittorrent.conf: |
+    [AutoRun]
+    enabled=false
+    program=
+
+    [BitTorrent]
+    Session\GlobalMaxSeedingMinutes=600
+
+    [Core]
+    AutoDeleteAddedTorrentFile=Never
+
+    [LegalNotice]
+    Accepted=true
+
+    [Preferences]
+    Advanced\RecheckOnCompletion=false
+    Advanced\trackerPort=9000
+    Connection\PortRangeMin=6881
+    Connection\Proxy\IP=vpn-service.gluetun
+    Connection\Proxy\Password=
+    Connection\Proxy\Port=8888
+    Connection\Proxy\Username=
+    Connection\ProxyType=1
+    Connection\ResolvePeerCountries=true
+    Connection\UPnP=false
+    Downloads\FinishedTorrentExportDir=/data/joal-import
+    Downloads\SavePath=/data/downloads/
+    Downloads\TempPath=/downloads/incomplete/
+    DynDNS\DomainName=changeme.dyndns.org
+    DynDNS\Enabled=false
+    DynDNS\Password=
+    DynDNS\Service=0
+    DynDNS\Username=
+    General\Locale=
+    MailNotification\email=
+    MailNotification\enabled=false
+    MailNotification\password=
+    MailNotification\req_auth=true
+    MailNotification\req_ssl=false
+    MailNotification\sender=qBittorrent_notification@example.com
+    MailNotification\smtp_server=smtp.changeme.com
+    MailNotification\username=
+    Queueing\QueueingEnabled=true
+    WebUI\Address=*
+    WebUI\AlternativeUIEnabled=false
+    WebUI\AuthSubnetWhitelist=@Invalid()
+    WebUI\AuthSubnetWhitelistEnabled=false
+    WebUI\BanDuration=3600
+    WebUI\CSRFProtection=true
+    WebUI\ClickjackingProtection=true
+    WebUI\CustomHTTPHeaders=
+    WebUI\CustomHTTPHeadersEnabled=false
+    WebUI\HTTPS\CertificatePath=
+    WebUI\HTTPS\Enabled=false
+    WebUI\HTTPS\KeyPath=
+    WebUI\HostHeaderValidation=true
+    WebUI\LocalHostAuth=true
+    WebUI\MaxAuthenticationFailCount=5
+    WebUI\Password_PBKDF2="REPLACE_ME_WITH_REAL_PASSWORD"
+    WebUI\Port=8080
+    WebUI\RootFolder=
+    WebUI\SecureCookie=true
+    WebUI\ServerDomains=*
+    WebUI\SessionTimeout=3600
+    WebUI\UseUPnP=true
+    WebUI\Username=root
+
+    [RSS]
+    AutoDownloader\DownloadRepacks=true
+    AutoDownloader\SmartEpisodeFilter=s(\\d+)e(\\d+), (\\d+)x(\\d+), "(\\d{4}[.\\-]\\d{1,2}[.\\-]\\d{1,2})", "(\\d{1,2}[.\\-]\\d{1,2}[.\\-]\\d{4})"

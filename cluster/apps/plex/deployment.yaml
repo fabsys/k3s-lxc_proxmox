@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex
+  labels:
+    app: plex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plex
+  template:
+    metadata:
+      labels:
+        app: plex
+    spec:
+      hostNetwork: true
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: plex
+          image: plexinc/pms-docker:1.42.2.10156-f737b826c
+          env:
+            - name: TZ
+              value: "Europe/London"
+            - name: PLEX_CLAIM
+              value: "claim-3VRPs6EvRMAPK_vqsTZF"
+            # Assure que Plex utilise le même utilisateur que Radarr/Sonarr
+            - name: PLEX_UID
+              value: "1000"
+            - name: PLEX_GID
+              value: "1000"
+          volumeMounts:
+            - name: plex-config
+              mountPath: /config
+            # Montage unifié : Plex voit tout dans /data
+            - name: all-media
+              mountPath: /data
+      volumes:
+        - name: plex-config
+          persistentVolumeClaim:
+            claimName: plex-config-pvc
+        # On pointe vers le même dossier parent que les autres
+        - name: all-media
+          hostPath:
+            path: "/mnt/shared_data/movies"
+            type: Directory

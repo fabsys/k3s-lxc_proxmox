@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    external-dns.alpha.kubernetes.io/hostname: "nginx-demo2.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
+    #external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    #nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0" # Service à vu Internet
+spec:
+  ingressClassName: nginx-public
+  tls:
+  - hosts:
+      - nginx-demo2.fabsys.ovh
+    secretName: nginx-ingress-tls
+  rules:
+  - host: nginx-demo2.fabsys.ovh
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80

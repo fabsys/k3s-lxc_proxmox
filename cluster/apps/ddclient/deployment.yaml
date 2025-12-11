@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ddclient
+  namespace: ddclient
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ddclient
+  template:
+    metadata:
+      labels:
+        app: ddclient
+    spec:
+      # Init container pour copier le Secret dans un volume writable
+      initContainers:
+      - name: copy-ddclient-config
+        image: busybox
+        command: ["sh", "-c", "cp /secret/ddclient.conf /config/ddclient.conf"]
+        volumeMounts:
+          - name: config
+            mountPath: /config
+          - name: ddclient-secret
+            mountPath: /secret
+      containers:
+      - name: ddclient
+        image: linuxserver/ddclient:4.0.0
+        volumeMounts:
+          - name: config
+            mountPath: /config
+      volumes:
+        # Volume writable pour /config
+        - name: config
+          emptyDir: {}
+        # Secret contenant ddclient.conf
+        - name: ddclient-secret
+          secret:
+            secretName: ddclient-config
+
+
+
+# create secret: 
+
+# kubeseal -f ddclient-config.yaml -o yaml
+
+# kubectl create secret generic ddclient-config \
+#   --from-file=ddclient.conf=./ddclient.conf \
+#   -n ddclient --dry-run=client -o yaml
+
+# kubectl create secret generic ddclient-config \
+#   --from-file=ddclient.conf=./ddclient.conf \
+#   -n ddclient --dry-run=client -o yaml \
+# | kubeseal -o yaml -n ddclient

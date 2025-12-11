@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rtorrent-rutorrent
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rtorrent-rutorrent
+  template:
+    metadata:
+      labels:
+        app: rtorrent-rutorrent
+    spec:
+      initContainers:
+      - name: network-setup
+        image: alpine:3.23.0
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          # Attendre que les interfaces soient prêtes
+          until ip link show net1 2>/dev/null; do sleep 1; done
+          
+          # Configurer le routage
+          ip route replace default via 192.168.1.1 dev net1
+          ip route add 10.0.0.0/8 via 10.244.0.1 dev eth0
+          ip route add 192.168.0.0/16 via 10.244.0.1 dev eth0
+      containers:
+      - name: rtorrent-rutorrent
+        image: diameter/rtorrent-rutorrent:latest
+        ports:
+        - containerPort: 80    # web UI
+        - containerPort: 49160
+          protocol: UDP
+        - containerPort: 49161
+          protocol: TCP
+        volumeMounts:
+        - name: downloads
+          mountPath: /downloads
+      volumes:
+      - name: downloads
+        hostPath:
+          path: "/mnt/shared_data/movies"
+          type: Directory

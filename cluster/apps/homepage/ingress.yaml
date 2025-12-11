@@ -1,0 +1,19 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homepage-ingress
+
+spec:
+  ingressClassName: nginx-private
+  rules:
+    - host: homepage.services.k8s
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homepage-svc
+                port:
+                  number: 3000

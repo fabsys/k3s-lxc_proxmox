@@ -1,0 +1,49 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    ':disableRateLimiting',
+  ],
+  enabledManagers: [
+    'kubernetes',
+    'dockerfile',
+    'custom.regex',
+  ],
+  kubernetes: {
+    managerFilePatterns: [
+      '/\\.yaml$/',
+    ],
+  },
+  packageRules: [
+    {
+      description: 'On auto-merge TOUT ce qui est mineur ou patch (v1.0.0 -> v1.0.1)',
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+      ],
+      groupName: 'all non-major dependencies',
+      groupSlug: 'all-minor-patch',
+      automerge: true,
+      matchPackageNames: [
+        '*',
+      ],
+    },
+    {
+      description: 'On bloque TOUT ce qui est majeur (v1 -> v2) pour validation manuelle',
+      matchUpdateTypes: [
+        'major',
+      ],
+      dependencyDashboardApproval: true,
+      matchPackageNames: [
+        '*',
+      ],
+    },
+    {
+      description: 'Aide Renovate à lire les tags bizarres de LinuxServer',
+      versioning: 'docker',
+      matchPackageNames: [
+        '/^lscr\\.io//',
+      ],
+    },
+  ],
+}

@@ -1,0 +1,9 @@
+#https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md
+#kubectl -n k8s-dashboard create token admin-user
+apiVersion: v2
+name: k8s-dashboard
+version: 7.13.0
+dependencies:
+  - name: kubernetes-dashboard
+    version: 7.14.0
+    repository: https://kubernetes.github.io/dashboard

@@ -1,0 +1,12 @@
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: mon-backup
+  namespace: velero
+spec:
+  includedNamespaces:
+    - nginx-demo
+  # Optionnel : inclure les ressources cluster-scoped
+  # includeClusterResources: true
+  # Optionnel : durée de rétention
+  # ttl: 168h

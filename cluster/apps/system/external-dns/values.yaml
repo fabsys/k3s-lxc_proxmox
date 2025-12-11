@@ -1,0 +1,43 @@
+external-dns:
+
+  # image:  # @schema additionalProperties: false
+  #   tag:  v20250402-v0.16.1-48-g1efdf416
+  #   repository: gcr.io/k8s-staging-external-dns/external-dns
+
+  # provider: pihole
+
+  # #logLevel: debug
+  # policy: sync
+  # registry: txt
+  # txtOwnerId: "k8s"
+  # interval: "1m"
+
+  # sources:
+  #   - service
+  #   - ingress
+
+  # # On passe les paramètres du provider Pi-hole via extraArgs
+  # extraArgs:
+  #   - --pihole-server=http://192.168.1.106
+  #   - --pihole-tls-skip-verify
+  #   # pas besoin de mot de passe → ne pas ajouter --pihole-password
+
+  # serviceAccount:
+  #   create: true
+  #   name: external-dns
+
+  # rbac:
+  #   create: true
+
+
+
+
+  provider:
+    name: cloudflare
+    #proxied: true
+  env:
+    - name: CF_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-api-key
+          key: apiKey
