@@ -9,6 +9,7 @@ data:
     program=
 
     [BitTorrent]
+    Session\Categories=@Variant(\0\0\0\b\0\0\0\x2\0\0\0\x12\0t\0v\0-\0s\0o\0n\0\x61\0r\0r\0\0\0\n\0\0\0\0\0\0\0\f\0r\0\x61\0\x64\0\x61\0r\0r\0\0\0\n\0\0\0\0)
     Session\GlobalMaxSeedingMinutes=600
 
     [Core]
@@ -20,6 +21,7 @@ data:
     [Preferences]
     Advanced\RecheckOnCompletion=false
     Advanced\trackerPort=9000
+    Bittorrent\MaxRatioAction=3
     Connection\PortRangeMin=6881
     Connection\Proxy\IP=vpn-service.gluetun
     Connection\Proxy\Password=
@@ -45,6 +47,7 @@ data:
     MailNotification\sender=qBittorrent_notification@example.com
     MailNotification\smtp_server=smtp.changeme.com
     MailNotification\username=
+    Queueing\MaxActiveDownloads=6
     Queueing\QueueingEnabled=true
     WebUI\Address=*
     WebUI\AlternativeUIEnabled=false
