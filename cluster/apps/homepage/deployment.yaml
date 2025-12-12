@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: homepage
-          image: ghcr.io/gethomepage/homepage:v1.7.0
+          image: ghcr.io/gethomepage/homepage:v1.8.0
           env:
             - name: HOMEPAGE_ALLOWED_HOSTS
               value: "homepage.services.k8s"
