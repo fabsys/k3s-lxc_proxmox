@@ -47,7 +47,7 @@ data:
     MailNotification\sender=qBittorrent_notification@example.com
     MailNotification\smtp_server=smtp.changeme.com
     MailNotification\username=
-    Queueing\MaxActiveDownloads=6
+    Queueing\MaxActiveDownloads=3
     Queueing\QueueingEnabled=true
     WebUI\Address=*
     WebUI\AlternativeUIEnabled=false
