@@ -8,7 +8,7 @@ data:
       "minUploadRate": 30,
       "maxUploadRate": 270,
       "simultaneousSeed": 15,
-      "client": "rtorrent-0.9.6_0.13.6.client",
+      "client": "qbittorrent-4.3.9.client",
       "keepTorrentWithZeroLeechers": true,
       "uploadRatioTarget": -1.0
     }
