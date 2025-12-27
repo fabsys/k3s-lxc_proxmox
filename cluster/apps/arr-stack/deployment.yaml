@@ -23,6 +23,13 @@ spec:
       containers:
         - name: jellyfin
           image: docker.io/jellyfin/jellyfin:10.11.5
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi" 
+              cpu: "3000m"
           securityContext:
             privileged: true # Obligatoire pour le transcoding hardware, voir si on peut faire mieux ...
           ports:
@@ -117,6 +124,13 @@ spec:
       containers:
         - name: qbittorrent
           image: lscr.io/linuxserver/qbittorrent:20.04.1
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
           env:
             - name: PUID
               value: "1000"
