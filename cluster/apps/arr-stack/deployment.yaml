@@ -344,6 +344,13 @@ spec:
       containers:
         - name: jellyseerr
           image: docker.io/fallenbagel/jellyseerr:2.7.3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
           ports:
             - containerPort: 5055
           volumeMounts:
