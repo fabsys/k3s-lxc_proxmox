@@ -454,6 +454,7 @@ spec:
               cpu: "50m"
             limits:
               memory: "512Mi" # Java peut être gourmand, on le limite
+              cpu: "0.5"
           volumeMounts:
             # Ici, le PVC remplace /data (qui contient maintenant les fichiers copiés par l'init)
             - name: joal-data
