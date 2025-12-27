@@ -186,7 +186,7 @@ spec:
           image: lscr.io/linuxserver/radarr:6.0.4
           resources:
             limits:
-              cpus: '0.75'
+              cpu: '0.75'
               memory: 2G
           ports:
             - containerPort: 7878
@@ -230,7 +230,7 @@ spec:
           image: lscr.io/linuxserver/sonarr:4.0.16
           resources:
             limits:
-              cpus: '0.75'
+              cpu: '0.75'
               memory: 2G
           ports:
             - containerPort: 8989
@@ -305,7 +305,7 @@ spec:
           image: lscr.io/linuxserver/prowlarr:2.3.0.5236-ls132
           resources:
             limits:
-              cpus: '0.75'
+              cpu: '0.75'
               memory: 2G
           ports:
             - containerPort: 9696
