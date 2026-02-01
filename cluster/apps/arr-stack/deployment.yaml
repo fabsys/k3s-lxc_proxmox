@@ -22,7 +22,7 @@ spec:
         # supplementalGroups: [44, 991]
       containers:
         - name: jellyfin
-          image: docker.io/jellyfin/jellyfin:10.11.5
+          image: docker.io/jellyfin/jellyfin:10.11.6
           resources:
             requests:
               memory: "1Gi"
