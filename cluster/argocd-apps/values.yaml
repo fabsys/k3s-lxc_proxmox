@@ -74,3 +74,6 @@ apps:
   - appName: homepage
     path: cluster/apps/homepage
     namespace: homepage
+  - appName: syncthing
+    path: cluster/apps/syncthing
+    namespace: syncthing
