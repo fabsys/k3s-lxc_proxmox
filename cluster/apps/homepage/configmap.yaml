@@ -29,6 +29,10 @@ data:
           href: https://paperless.fabsys.ovh
           description: Document management system
           icon: paperless.svg
+      - syncthing:
+          href: https://syncthing.fabsys.ovh
+          description: Syncthing client
+          icon: syncthing.svg
     - Management:
       - Qbittorrent:
           href: http://qbittorrent.services.k8s
