@@ -18,7 +18,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: filebrowser
-          image: filebrowser/filebrowser:v2.56.0
+          image: filebrowser/filebrowser:v2.61.0
           args:
             - "--noauth"                # Pas de mot de passe (pour le réseau local)
             - "--address=0.0.0.0"       # INDISPENSABLE pour que K8s puisse y accéder
