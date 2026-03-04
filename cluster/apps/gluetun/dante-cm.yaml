@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dante-config
+  namespace: gluetun
+data:
+  sockd.conf: |
+    logoutput: /dev/stdout
+
+    # Écoute sur toutes les interfaces du pod
+    internal: 0.0.0.0 port = 1080
+
+    # Interface externe : eth0 du pod (gluetun force tout le trafic via tun0 par iptables)
+    external: eth0
+
+    # Pas d'authentification
+    clientmethod: none
+    socksmethod: none
+
+    client pass {
+        from: 0.0.0.0/0 to: 0.0.0.0/0
+        log: error
+    }
+
+    # Autorise TCP + UDP (UDP ASSOCIATE pour les trackers UDP de qBittorrent)
+    socks pass {
+        from: 0.0.0.0/0 to: 0.0.0.0/0
+        command: bind connect udpassociate
+        log: error
+        protocol: tcp udp
+    }

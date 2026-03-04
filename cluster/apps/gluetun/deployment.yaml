@@ -80,18 +80,18 @@ spec:
               subPath: ca.crt
               readOnly: true
 
-        # Sidecar SOCKS5 : partage le namespace réseau de gluetun → trafic VPN automatique
-        # Nécessaire car gluetun n'a pas de SOCKS5 natif (seulement HTTP proxy et Shadowsocks)
-        # SOCKS5 supporte TCP + UDP (contrairement au HTTP proxy) → trackers UDP fonctionnels
-        - name: socks5-proxy
-          image: serjs/go-socks5-proxy:latest
+        # Sidecar dante : SOCKS5 avec support UDP ASSOCIATE (requis pour trackers UDP qBittorrent)
+        # Partage le namespace réseau de gluetun → trafic VPN automatique via iptables
+        # serjs/go-socks5-proxy ne supporte pas UDP ASSOCIATE, dante oui
+        - name: dante
+          image: vimagick/dante:latest
           ports:
             - containerPort: 1080
-          env:
-            - name: PROXY_PORT
-              value: "1080"
-            - name: REQUIRE_AUTH
-              value: "false"
+          volumeMounts:
+            - name: dante-config
+              mountPath: /etc/sockd.conf
+              subPath: sockd.conf
+              readOnly: true
 
       volumes:
         - name: gluetun-data
@@ -107,6 +107,9 @@ spec:
                 path: client.crt
               - key: ca.crt
                 path: ca.crt
+        - name: dante-config
+          configMap:
+            name: dante-config
 
 # kubectl create secret generic vpn-sensitive-data \
 #   --from-file=client.key=client.key \
