@@ -23,7 +23,7 @@ data:
     Advanced\trackerPort=9000
     Bittorrent\MaxRatioAction=3
     Connection\PortRangeMin=6881
-    Connection\Proxy\IP=vpn-service.gluetun
+    Connection\Proxy\IP=127.0.0.1
     Connection\Proxy\Password=
     Connection\Proxy\Port=1080
     Connection\Proxy\Username=

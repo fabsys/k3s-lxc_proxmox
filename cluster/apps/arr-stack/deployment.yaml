@@ -143,12 +143,47 @@ spec:
           ports:
             - containerPort: 8080
           volumeMounts:
-            # ICI : On monte UNIQUEMENT le PVC. 
+            # ICI : On monte UNIQUEMENT le PVC.
             - name: config
               mountPath: /config
             # Montage des medias
             - name: all-media
               mountPath: /data
+
+        # Sidecar ss-local : client Shadowsocks exposant un SOCKS5 sur 127.0.0.1:1080
+        # Partage le même pod que qBittorrent → SOCKS5 UDP ASSOCIATE sur loopback (pas de problème de ports K8s)
+        # ss-local → vpn-service.gluetun.svc.cluster.local:8388 (Shadowsocks) → VPN → tracker UDP
+        - name: ss-local
+          image: shadowsocks/shadowsocks-libev:latest
+          command: ["ss-local"]
+          args:
+            - "-s"
+            - "vpn-service.gluetun.svc.cluster.local"
+            - "-p"
+            - "8388"
+            - "-l"
+            - "1080"
+            - "-m"
+            - "chacha20-ietf-poly1305"
+            - "-k"
+            - "$(SS_PASSWORD)"
+            - "-b"
+            - "127.0.0.1"   # Bind sur loopback uniquement (accessible par qBittorrent dans le même pod)
+            - "-u"           # Active le relais UDP (nécessaire pour les trackers UDP)
+          env:
+            - name: SS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shadowsocks-config
+                  key: password
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+
       volumes:
         - name: config
           persistentVolumeClaim:

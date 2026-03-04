@@ -10,7 +10,11 @@ spec:
       protocol: TCP
       port: 8888
       targetPort: 8888
-    - name: socks-proxy
+    - name: shadowsocks-tcp
       protocol: TCP
-      port: 1080
-      targetPort: 1080
+      port: 8388
+      targetPort: 8388
+    - name: shadowsocks-udp
+      protocol: UDP
+      port: 8388
+      targetPort: 8388

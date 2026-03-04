@@ -47,20 +47,27 @@ spec:
               value: "on"
             - name: HTTPPROXY_PORT
               value: "8888"
+            # Shadowsocks : supporte TCP+UDP, utilisé par les sidecars ss-local dans d'autres pods
+            # Password stocké dans le secret 'shadowsocks-config'
+            - name: SHADOWSOCKS
+              value: "on"
+            - name: SHADOWSOCKS_PORT
+              value: "8388"
+            - name: SHADOWSOCKS_CIPHER
+              value: "chacha20-ietf-poly1305"
+            - name: SHADOWSOCKS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shadowsocks-config
+                  key: password
             - name: FIREWALL_OUTBOUND_SUBNETS
               value: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
-            # - name: FIREWALL
-            #   value: "off"
-            # - name: FIREWALL_DEBUG
-            #   value: "on"
-            # Port 1080 ouvert pour le sidecar SOCKS5 (serjs/go-socks5-proxy)
             - name: FIREWALL_INPUT_PORTS
-              value: "8888,1080"
-
+              value: "8888,8388"
 
           ports:
             - containerPort: 8888
-            - containerPort: 1080
+            - containerPort: 8388
 
           volumeMounts:
             - name: gluetun-data
@@ -80,19 +87,6 @@ spec:
               subPath: ca.crt
               readOnly: true
 
-        # Sidecar dante : SOCKS5 avec support UDP ASSOCIATE (requis pour trackers UDP qBittorrent)
-        # Partage le namespace réseau de gluetun → trafic VPN automatique via iptables
-        # serjs/go-socks5-proxy ne supporte pas UDP ASSOCIATE, dante oui
-        - name: dante
-          image: vimagick/dante:latest
-          ports:
-            - containerPort: 1080
-          volumeMounts:
-            - name: dante-config
-              mountPath: /etc/sockd.conf
-              subPath: sockd.conf
-              readOnly: true
-
       volumes:
         - name: gluetun-data
           emptyDir: {}
@@ -107,9 +101,6 @@ spec:
                 path: client.crt
               - key: ca.crt
                 path: ca.crt
-        - name: dante-config
-          configMap:
-            name: dante-config
 
 # kubectl create secret generic vpn-sensitive-data \
 #   --from-file=client.key=client.key \
