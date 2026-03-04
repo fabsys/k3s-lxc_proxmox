@@ -25,9 +25,9 @@ data:
     Connection\PortRangeMin=6881
     Connection\Proxy\IP=vpn-service.gluetun
     Connection\Proxy\Password=
-    Connection\Proxy\Port=8888
+    Connection\Proxy\Port=1080
     Connection\Proxy\Username=
-    Connection\ProxyType=1
+    Connection\ProxyType=2
     Connection\ResolvePeerCountries=true
     Connection\UPnP=false
     Downloads\FinishedTorrentExportDir=/data/joal-import
