@@ -1,3 +1,5 @@
+---
+# Service ClusterIP standard : HTTP proxy pour joal et autres apps (TCP uniquement)
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,6 +12,20 @@ spec:
       protocol: TCP
       port: 8888
       targetPort: 8888
+
+---
+# Service HEADLESS pour Shadowsocks : bypass kube-proxy, DNS retourne l'IP du pod directement
+# Nécessaire pour que ss-local puisse envoyer de l'UDP sans passer par kube-proxy
+# (kube-proxy ClusterIP ne route pas fiablement l'UDP en mixed-protocol TCP+UDP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpn-shadowsocks
+spec:
+  clusterIP: None
+  selector:
+    app: vpn-gateway
+  ports:
     - name: shadowsocks-tcp
       protocol: TCP
       port: 8388

@@ -158,7 +158,7 @@ spec:
           command: ["ss-local"]
           args:
             - "-s"
-            - "vpn-service.gluetun.svc.cluster.local"
+            - "vpn-shadowsocks.gluetun.svc.cluster.local"
             - "-p"
             - "8388"
             - "-l"
