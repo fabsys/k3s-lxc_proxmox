@@ -35,9 +35,9 @@ apps:
     namespace: renovate
 
 # Others    
-  - appName: hajimari
-    path: cluster/apps/hajimari
-    namespace: hajimari
+  # - appName: hajimari
+  #   path: cluster/apps/hajimari
+  #   namespace: hajimari
   # - appName: nginx-demo
   #   path: cluster/apps/nginx-demo
   #   namespace: nginx-demo
