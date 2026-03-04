@@ -90,6 +90,8 @@ spec:
           env:
             - name: PROXY_PORT
               value: "1080"
+            - name: REQUIRE_AUTH
+              value: "false"
 
       volumes:
         - name: gluetun-data
