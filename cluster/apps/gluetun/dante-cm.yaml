@@ -10,8 +10,9 @@ data:
     # Écoute sur toutes les interfaces du pod
     internal: 0.0.0.0 port = 1080
 
-    # Interface externe : eth0 du pod (gluetun force tout le trafic via tun0 par iptables)
-    external: eth0
+    # Interface externe : tun0 = interface VPN créée par gluetun (OpenVPN)
+    # eth0 est bloqué par le kill switch de gluetun pour tout trafic non-VPN
+    external: tun0
 
     # Pas d'authentification
     clientmethod: none
