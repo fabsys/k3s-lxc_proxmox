@@ -16,7 +16,7 @@ spec:
               image: alpine:3.23
               env:
                 - name: RESTIC_REPOSITORY
-                  value: "rclone:googledrive:k3s-backups/arr-stack"
+                  value: "rclone:gdrive:k3s-backups/arr-stack"
                 - name: RESTIC_PASSWORD
                   valueFrom:
                     secretKeyRef:
