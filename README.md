@@ -48,10 +48,12 @@ Dell T5810 (ZFS NAS — Wake-on-LAN)
 
 ### Dual ingress
 
-| Class | IP | Access | Usage |
-|-------|----|--------|-------|
-| `nginx-private` | 192.168.1.251 | LAN only (`192.168.1.0/24`) | Internal services (`*.services.k8s`) |
-| `nginx-public` | 192.168.1.250 | Internet | Public services (`*.fabsys.ovh`) |
+| Class | IP | Access | Domain | TLS |
+|-------|----|--------|--------|-----|
+| `nginx-private` | 192.168.1.251 | LAN only (`192.168.1.0/24`) | `*.int.fabsys.ovh` | Let's Encrypt DNS-01 (Cloudflare) |
+| `nginx-public` | 192.168.1.250 | Internet | `*.fabsys.ovh` | Let's Encrypt HTTP-01 |
+
+Internal services use a **real public subdomain** (`int.fabsys.ovh`) with DNS records pointing to the private IP `192.168.1.251`. This allows Let's Encrypt to issue valid certificates via DNS-01 challenge without exposing any port to the internet. The services remain LAN-only since `192.168.1.251` is not routable from outside.
 
 ## Applications
 
@@ -62,9 +64,10 @@ Dell T5810 (ZFS NAS — Wake-on-LAN)
 | metallb | metallb-system | LoadBalancer IPs via L2 |
 | ingress-nginx-private | ingress-nginx-private | Internal ingress |
 | ingress-nginx-public | ingress-nginx-public | Public ingress |
-| cert-manager | cert-manager | TLS (Let's Encrypt) |
+| cert-manager | cert-manager | TLS via Let's Encrypt (HTTP-01 for public, DNS-01 for internal) |
 | sealed-secrets | kube-system | Encrypted secrets for GitOps |
-| external-dns | external-dns | Cloudflare DNS sync |
+| external-dns | external-dns | Cloudflare DNS auto-sync |
+| snapshot-controller | kube-system | VolumeSnapshot CRDs (required by VolSync) |
 | kured | kured | Automatic node reboots |
 | system-upgrade-controller | cattle-system | K3s upgrades |
 | volsync | volsync-system | Volume backup/replication |
@@ -74,18 +77,18 @@ Dell T5810 (ZFS NAS — Wake-on-LAN)
 
 | App | URL | Description |
 |-----|-----|-------------|
-| ArgoCD | argocd.services.k8s | GitOps controller |
-| Homepage | homepage.services.k8s | Dashboard |
+| ArgoCD | argocd.int.fabsys.ovh | GitOps controller (self-managed) |
+| Homepage | homepage.int.fabsys.ovh | Dashboard |
 | Jellyfin | jellyfin.fabsys.ovh | Media server (VAAPI transcoding) |
 | Jellyseerr | jellyseerr.fabsys.ovh | Media requests |
-| Radarr | radarr.services.k8s | Movie automation |
-| Sonarr | sonarr.services.k8s | TV series automation |
-| Prowlarr | prowlarr.services.k8s | Indexer aggregator |
-| qBittorrent | qbittorrent.services.k8s | Torrent client (via VPN) |
-| Gluetun | — | VPN gateway (CyberGhost) |
-| Paperless-ngx | paperless.services.k8s | Document management |
-| Syncthing | syncthing.services.k8s | File synchronization |
-| Filebrowser | filebrowser.services.k8s | Web file manager |
+| Radarr | radarr.int.fabsys.ovh | Movie automation |
+| Sonarr | sonarr.int.fabsys.ovh | TV series automation |
+| Prowlarr | prowlarr.int.fabsys.ovh | Indexer aggregator |
+| qBittorrent | qbittorrent.int.fabsys.ovh | Torrent client (via VPN) |
+| Gluetun | — | VPN gateway (CyberGhost), proxy sur `192.168.1.252` |
+| Paperless-ngx | paperless.int.fabsys.ovh | Document management |
+| Syncthing | syncthing.int.fabsys.ovh | File synchronization |
+| Filebrowser | filebrowser.int.fabsys.ovh | Web file manager |
 
 ---
 
@@ -174,6 +177,19 @@ kubectl create secret generic cloudflare-api-key \
   -n external-dns --dry-run=client -o yaml \
   | kubeseal -o yaml -n external-dns \
   > cluster/apps/system/external-dns/templates/cloudflare-api-key.yaml
+```
+
+#### cert-manager DNS-01 (Cloudflare)
+Required for issuing Let's Encrypt certificates for internal services (`*.int.fabsys.ovh`) via DNS challenge. Uses the same Cloudflare token as external-dns but must be in the `cert-manager` namespace.
+```bash
+# Retrieve the existing token from external-dns secret
+TOKEN=$(kubectl get secret cloudflare-api-key -n external-dns -o jsonpath='{.data.apiKey}' | base64 -d)
+
+kubectl create secret generic cloudflare-api-token \
+  --from-literal=api-token="$TOKEN" \
+  -n cert-manager --dry-run=client -o yaml \
+  | kubeseal -o yaml -n cert-manager \
+  > cluster/apps/system/cert-manager/templates/cloudflare-api-token.yaml
 ```
 
 #### Gluetun (VPN)
