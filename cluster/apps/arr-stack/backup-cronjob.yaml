@@ -1,0 +1,104 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: arr-stack-backup
+spec:
+  schedule: "30 3 * * *"   # Tous les jours à 3h30 (après le backup paperless à 3h00)
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: restic-backup
+              image: alpine:latest
+              env:
+                - name: RESTIC_REPOSITORY
+                  value: "rclone:googledrive:k3s-backups/arr-stack"
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-secret
+                      key: RESTIC_PASSWORD
+                - name: RCLONE_CONFIG
+                  value: /tmp/rclone.conf
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache restic rclone
+
+                  cp /rclone/rclone.conf /tmp/rclone.conf
+
+                  restic snapshots 2>/dev/null || restic init
+
+                  EXCLUDE="--exclude=**/logs/** --exclude=**/log/** --exclude=**/cache/** --exclude=**/Cache/** --exclude=**/transcodes/** --exclude=**/MediaCover/**"
+
+                  echo "=== Backup Radarr ==="
+                  restic backup --tag radarr $EXCLUDE /data/radarr
+
+                  echo "=== Backup Sonarr ==="
+                  restic backup --tag sonarr $EXCLUDE /data/sonarr
+
+                  echo "=== Backup Prowlarr ==="
+                  restic backup --tag prowlarr $EXCLUDE /data/prowlarr
+
+                  echo "=== Backup Jellyfin ==="
+                  restic backup --tag jellyfin $EXCLUDE /data/jellyfin
+
+                  echo "=== Backup Jellyseerr ==="
+                  restic backup --tag jellyseerr $EXCLUDE /data/jellyseerr
+
+                  echo "Nettoyage : conservation des 7 derniers backups"
+                  restic forget --keep-daily 7 --prune
+
+                  echo "Snapshots disponibles :"
+                  restic snapshots
+              volumeMounts:
+                - name: radarr
+                  mountPath: /data/radarr
+                  readOnly: true
+                - name: sonarr
+                  mountPath: /data/sonarr
+                  readOnly: true
+                - name: prowlarr
+                  mountPath: /data/prowlarr
+                  readOnly: true
+                - name: jellyfin
+                  mountPath: /data/jellyfin
+                  readOnly: true
+                - name: jellyseerr
+                  mountPath: /data/jellyseerr
+                  readOnly: true
+                - name: rclone-config
+                  mountPath: /rclone
+                  readOnly: true
+          volumes:
+            - name: radarr
+              persistentVolumeClaim:
+                claimName: radarr-pvc
+                readOnly: true
+            - name: sonarr
+              persistentVolumeClaim:
+                claimName: sonarr-pvc
+                readOnly: true
+            - name: prowlarr
+              persistentVolumeClaim:
+                claimName: prowlarr-pvc
+                readOnly: true
+            - name: jellyfin
+              persistentVolumeClaim:
+                claimName: jellyfin-pvc
+                readOnly: true
+            - name: jellyseerr
+              persistentVolumeClaim:
+                claimName: jellyseerr-pvc
+                readOnly: true
+            - name: rclone-config
+              secret:
+                secretName: rclone-config
+                items:
+                  - key: rclone.conf
+                    path: rclone.conf

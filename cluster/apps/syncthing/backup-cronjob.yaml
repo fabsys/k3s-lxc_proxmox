@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: syncthing-backup
+spec:
+  schedule: "0 4 * * *"   # Tous les jours à 4h00
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: restic-backup
+              image: alpine:latest
+              env:
+                - name: RESTIC_REPOSITORY
+                  value: "rclone:googledrive:k3s-backups/syncthing"
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-secret
+                      key: RESTIC_PASSWORD
+                - name: RCLONE_CONFIG
+                  value: /tmp/rclone.conf
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache restic rclone
+
+                  cp /rclone/rclone.conf /tmp/rclone.conf
+
+                  restic snapshots 2>/dev/null || restic init
+
+                  echo "=== Backup Syncthing config (clés, appareils, dossiers) ==="
+                  restic backup --tag syncthing-config \
+                    --exclude="**/index-v0.14.0.db/**" \
+                    --exclude="**/csrftokens.txt" \
+                    /data/config
+
+                  echo "Nettoyage : conservation des 7 derniers backups"
+                  restic forget --keep-daily 7 --prune
+
+                  echo "Snapshots disponibles :"
+                  restic snapshots
+              volumeMounts:
+                - name: syncthing-config
+                  mountPath: /data/config
+                  readOnly: true
+                - name: rclone-config
+                  mountPath: /rclone
+                  readOnly: true
+          volumes:
+            - name: syncthing-config
+              persistentVolumeClaim:
+                claimName: syncthing-config-pvc
+                readOnly: true
+            - name: rclone-config
+              secret:
+                secretName: rclone-config
+                items:
+                  - key: rclone.conf
+                    path: rclone.conf
