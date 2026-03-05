@@ -43,12 +43,15 @@ spec:
                       name: restic-secret
                       key: RESTIC_PASSWORD
                 - name: RCLONE_CONFIG
-                  value: /rclone/rclone.conf
+                  value: /tmp/rclone.conf
               command:
                 - /bin/sh
                 - -c
                 - |
                   apk add --no-cache restic rclone
+
+                  # Copier le config dans un dossier writable pour que rclone puisse rafraîchir le token OAuth
+                  cp /rclone/rclone.conf /tmp/rclone.conf
 
                   # Initialiser le repo restic si première fois
                   restic snapshots 2>/dev/null || restic init
