@@ -3,6 +3,11 @@ source:
   revision: main
 
 apps:
+# ArgoCD self-management
+  - appName: argocd
+    path: cluster/argocd
+    namespace: argocd
+
 # System Apps
   - appName: metallb
     path: cluster/apps/system/metallb

@@ -105,7 +105,9 @@ Dell T5810 (ZFS NAS — Wake-on-LAN)
 
 ## Bootstrap
 
-### 1. Install ArgoCD
+This is a **one-time** operation on a fresh cluster. After this, ArgoCD manages everything — including itself.
+
+### 1. Install ArgoCD (initial bootstrap only)
 
 ```bash
 helm repo add argo https://argoproj.github.io/argo-helm
@@ -115,13 +117,26 @@ helm upgrade --install argocd cluster/argocd/ \
   --namespace=argocd --create-namespace --wait
 ```
 
-### 2. Deploy all apps via root Application
+### 2. Register the root Application (app-of-apps)
 
 ```bash
 kubectl apply -f cluster/root-app.yaml
 ```
 
-ArgoCD will automatically sync and deploy all applications defined in `cluster/argocd-apps/values.yaml`.
+This single command connects ArgoCD to the git repository. ArgoCD will then automatically sync and deploy **all** applications defined in `cluster/argocd-apps/values.yaml`, including ArgoCD itself.
+
+### How self-management works
+
+```
+cluster/root-app.yaml        ← applied once manually (bootstrap)
+    └── cluster/argocd-apps/ ← app-of-apps, watched by ArgoCD
+            ├── argocd        → cluster/argocd/       ← ArgoCD manages itself
+            ├── metallb       → cluster/apps/system/metallb/
+            ├── cert-manager  → cluster/apps/system/cert-manager/
+            └── ...           → all other apps
+```
+
+From this point on, any change pushed to `main` is automatically applied by ArgoCD. To upgrade ArgoCD itself, simply update the chart version in `cluster/argocd/Chart.yaml` and push.
 
 ---
 
