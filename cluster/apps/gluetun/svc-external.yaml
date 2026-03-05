@@ -2,8 +2,8 @@
 # Permet d'utiliser gluetun comme proxy VPN depuis n'importe quel device du LAN
 #
 # Clients possibles :
-#   - HTTP proxy  : 192.168.1.250:8888 (joal, curl, navigateur...)
-#   - Shadowsocks : 192.168.1.250:8388 (ss-local, clients Shadowsocks, applis mobiles...)
+#   - HTTP proxy  : 192.168.1.252:8888 (joal, curl, navigateur...)
+#   - Shadowsocks : 192.168.1.252:8388 (ss-local, clients Shadowsocks, applis mobiles...)
 #
 # Note: MixedProtocolLBService (TCP+UDP sur même service) supporté depuis K8s 1.26+
 # Si erreur, créer deux services séparés (un TCP, un UDP)
@@ -13,6 +13,7 @@ metadata:
   name: vpn-service-external
   annotations:
     metallb.universe.tf/address-pool: first-pool
+    metallb.universe.tf/loadBalancerIPs: 192.168.1.252
 spec:
   type: LoadBalancer
   selector:
