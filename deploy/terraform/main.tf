@@ -90,12 +90,10 @@ resource "proxmox_virtual_environment_vm" "k3s_control" {
   # Virtiofs — partages du host Proxmox
   virtiofs {
     mapping = "movies"
-    tag     = 0
   }
 
   virtiofs {
     mapping = "paperless"
-    tag     = 1
   }
 
   # Cloud-init

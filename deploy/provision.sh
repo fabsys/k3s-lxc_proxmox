@@ -8,6 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TERRAFORM_DIR="$SCRIPT_DIR/terraform"
 ANSIBLE_DIR="$SCRIPT_DIR/ansible"
+CACHE_FILE="$SCRIPT_DIR/.provision.env"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -26,8 +27,16 @@ ask() {
   local default="${3:-}"
   local secret="${4:-false}"
 
-  if [[ -n "$default" ]]; then
-    prompt="$prompt [${default}]"
+  # Priorité : valeur déjà en cache > default passé en argument
+  local cached="${!var_name:-}"
+  local effective_default="${cached:-$default}"
+
+  if [[ -n "$effective_default" ]]; then
+    if [[ "$secret" == "true" ]]; then
+      prompt="$prompt [****]"
+    else
+      prompt="$prompt [${effective_default}]"
+    fi
   fi
 
   if [[ "$secret" == "true" ]]; then
@@ -37,11 +46,34 @@ ask() {
     read -rp "$prompt : " value
   fi
 
-  value="${value:-$default}"
+  value="${value:-$effective_default}"
   if [[ -z "$value" ]]; then
     error "La valeur '$var_name' est obligatoire."
   fi
   printf -v "$var_name" '%s' "$value"
+}
+
+load_cache() {
+  if [[ -f "$CACHE_FILE" ]]; then
+    # shellcheck source=/dev/null
+    source "$CACHE_FILE"
+    info "Config précédente chargée depuis .provision.env (Entrée pour garder, ou nouvelle valeur)"
+  fi
+}
+
+save_cache() {
+  cat > "$CACHE_FILE" <<EOF
+PROXMOX_ENDPOINT="$PROXMOX_ENDPOINT"
+PROXMOX_USER="$PROXMOX_USER"
+PROXMOX_NODE="$PROXMOX_NODE"
+VM_ID="$VM_ID"
+VM_IP="$VM_IP"
+VM_GATEWAY="$VM_GATEWAY"
+SSH_PUBLIC_KEY="$SSH_PUBLIC_KEY"
+DEBIAN_IMAGE_ID="$DEBIAN_IMAGE_ID"
+EOF
+  # Le mot de passe n'est PAS mis en cache
+  chmod 600 "$CACHE_FILE"
 }
 
 # ============================================================
@@ -65,6 +97,7 @@ check_prerequisites() {
 # Collecte des informations
 # ============================================================
 collect_inputs() {
+  load_cache
   echo
   echo -e "${CYAN}============================================================${NC}"
   echo -e "${CYAN}   Configuration du cluster k3s${NC}"
@@ -102,6 +135,8 @@ collect_inputs() {
 
   # IP sans le masque pour Ansible
   VM_IP_ONLY="${VM_IP%%/*}"
+
+  save_cache
 }
 
 # ============================================================
