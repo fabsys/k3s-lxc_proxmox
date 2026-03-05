@@ -7,5 +7,4 @@ vm_id      = 200
 vm_ip      = "192.168.1.100/24"
 vm_gateway = "192.168.1.1"
 
-ssh_public_key  = "ssh-ed25519 AAAA... you@machine"
-debian_image_id = "local:iso/debian-13-genericcloud-amd64.img"
+ssh_public_key = "ssh-ed25519 AAAA... you@machine"

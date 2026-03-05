@@ -14,6 +14,15 @@ provider "proxmox" {
   insecure = true # Accepte le certificat auto-signé Proxmox
 }
 
+resource "proxmox_virtual_environment_download_file" "debian13" {
+  content_type        = "iso"
+  datastore_id        = "local"
+  node_name           = var.proxmox_node
+  url                 = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"
+  file_name           = "debian-13-genericcloud-amd64.img"
+  overwrite_unmanaged = true
+}
+
 resource "proxmox_virtual_environment_vm" "k3s_control" {
   name        = "k3s-control"
   node_name   = var.proxmox_node
@@ -23,13 +32,16 @@ resource "proxmox_virtual_environment_vm" "k3s_control" {
   on_boot = true
   started = true
 
-  machine = "i440fx"
+  machine = "pc"
   bios    = "seabios"
 
-  # QEMU Guest Agent
+  # QEMU Guest Agent — désactivé au boot initial (pas préinstallé dans l'image cloud)
+  # Ansible installe qemu-guest-agent, puis Proxmox le détecte automatiquement
   agent {
-    enabled = true
+    enabled = false
   }
+
+  timeout_create = "5m"
 
   # CPU
   cpu {
@@ -45,10 +57,10 @@ resource "proxmox_virtual_environment_vm" "k3s_control" {
     floating  = 0
   }
 
-  # Disque OS (~30GB)
+  # Disque OS (~30GB) — cloné depuis l'image cloud Debian 13
   disk {
     datastore_id = "local-lvm"
-    file_id      = var.debian_image_id
+    file_id      = proxmox_virtual_environment_download_file.debian13.id
     interface    = "scsi0"
     size         = 30
     cache        = "writeback"
@@ -108,6 +120,7 @@ resource "proxmox_virtual_environment_vm" "k3s_control" {
     user_account {
       username = "ansible"
       keys     = [var.ssh_public_key]
+      password = var.vm_console_password
     }
 
     dns {

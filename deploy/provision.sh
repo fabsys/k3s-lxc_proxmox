@@ -70,7 +70,6 @@ VM_ID="$VM_ID"
 VM_IP="$VM_IP"
 VM_GATEWAY="$VM_GATEWAY"
 SSH_PUBLIC_KEY="$SSH_PUBLIC_KEY"
-DEBIAN_IMAGE_ID="$DEBIAN_IMAGE_ID"
 EOF
   # Le mot de passe n'est PAS mis en cache
   chmod 600 "$CACHE_FILE"
@@ -105,10 +104,18 @@ collect_inputs() {
   echo
 
   echo -e "${YELLOW}--- Proxmox ---${NC}"
-  ask PROXMOX_ENDPOINT  "URL API Proxmox"          "https://192.168.1.10:8006"
-  ask PROXMOX_USER      "Utilisateur Proxmox"       "root@pam"
-  ask PROXMOX_PASSWORD  "Mot de passe Proxmox"      "" "true"
-  ask PROXMOX_NODE      "Nom du nœud Proxmox"       "pve"
+  ask PROXMOX_ENDPOINT    "URL API Proxmox"              "https://192.168.1.10:8006"
+  ask PROXMOX_USER        "Utilisateur Proxmox"          "root@pam"
+  ask PROXMOX_NODE        "Nom du nœud Proxmox"          "pve"
+  echo -n "Mot de passe Proxmox : "
+  read -rsp "" PROXMOX_PASSWORD; echo
+  [[ -z "$PROXMOX_PASSWORD" ]] && error "Mot de passe Proxmox obligatoire."
+
+  echo
+  echo -e "${YELLOW}--- VM Console ---${NC}"
+  echo -n "Mot de passe console VM (accès urgence via Proxmox) : "
+  read -rsp "" VM_CONSOLE_PASSWORD; echo
+  [[ -z "$VM_CONSOLE_PASSWORD" ]] && error "Mot de passe console VM obligatoire."
 
   echo
   echo -e "${YELLOW}--- VM ---${NC}"
@@ -129,10 +136,6 @@ collect_inputs() {
   done
   ask SSH_PUBLIC_KEY    "Clé SSH publique" "$default_key"
 
-  echo
-  echo -e "${YELLOW}--- Image Debian ---${NC}"
-  ask DEBIAN_IMAGE_ID   "ID image Debian 13 dans Proxmox" "local:iso/debian-13-genericcloud-amd64.img"
-
   # IP sans le masque pour Ansible
   VM_IP_ONLY="${VM_IP%%/*}"
 
@@ -147,15 +150,15 @@ generate_configs() {
   cat > "$TERRAFORM_DIR/terraform.tfvars" <<EOF
 proxmox_endpoint = "$PROXMOX_ENDPOINT"
 proxmox_username = "$PROXMOX_USER"
-proxmox_password = "$PROXMOX_PASSWORD"
+proxmox_password    = "$PROXMOX_PASSWORD"
+vm_console_password = "$VM_CONSOLE_PASSWORD"
 proxmox_node     = "$PROXMOX_NODE"
 
 vm_id      = $VM_ID
 vm_ip      = "$VM_IP"
 vm_gateway = "$VM_GATEWAY"
 
-ssh_public_key  = "$SSH_PUBLIC_KEY"
-debian_image_id = "$DEBIAN_IMAGE_ID"
+ssh_public_key      = "$SSH_PUBLIC_KEY"
 EOF
   success "terraform.tfvars généré"
 

@@ -38,13 +38,14 @@ variable "vm_gateway" {
   default     = "192.168.1.1"
 }
 
+variable "vm_console_password" {
+  description = "Mot de passe pour accès console (urgence)"
+  type        = string
+  sensitive   = true
+}
+
 variable "ssh_public_key" {
   description = "Clé SSH publique pour accéder à la VM"
   type        = string
 }
 
-variable "debian_image_id" {
-  description = "ID de l'image cloud Debian 13 dans Proxmox (ex: local:iso/debian-13-genericcloud-amd64.img)"
-  type        = string
-  default     = "local:iso/debian-13-genericcloud-amd64.img"
-}
