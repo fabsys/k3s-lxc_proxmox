@@ -70,6 +70,23 @@
   hostname:
     name: k3s-control
 
+- name: Chargement des modules kernel requis pour k3s
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - br_netfilter
+    - overlay
+
+- name: Persistance des modules au boot
+  lineinfile:
+    path: /etc/modules-load.d/k3s.conf
+    line: "{{ item }}"
+    create: true
+  loop:
+    - br_netfilter
+    - overlay
+
 - name: Paramètres kernel pour k3s
   sysctl:
     name: "{{ item.key }}"

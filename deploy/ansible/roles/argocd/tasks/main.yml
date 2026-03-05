@@ -1,4 +1,12 @@
 ---
+- name: Création du dossier gitops
+  file:
+    path: /opt/k3s-gitops
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: '0755'
+
 - name: Clone du dépôt GitOps
   git:
     repo: "{{ github_repo }}"
@@ -26,6 +34,55 @@
   shell: kubectl apply -f /opt/k3s-gitops/cluster/root-app.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Attente que sealed-secrets soit déployé par ArgoCD
+  shell: |
+    kubectl wait pod -n kube-system -l app.kubernetes.io/name=sealed-secrets \
+      --for=condition=Ready --timeout=120s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  retries: 5
+  delay: 15
+  register: result
+  until: result.rc == 0
+
+- name: Génération d'une clé fixe sealed-secrets (si pas déjà présente)
+  shell: |
+    if kubectl get secret sealed-secrets-fixed-key -n kube-system &>/dev/null; then
+      echo "SKIP"
+      exit 0
+    fi
+    openssl req -x509 -nodes -newkey rsa:4096 \
+      -keyout /tmp/sealed-secrets.key \
+      -out /tmp/sealed-secrets.crt \
+      -days 3650 \
+      -subj "/CN=sealed-secret/O=sealed-secret"
+    kubectl create secret tls sealed-secrets-fixed-key \
+      --cert=/tmp/sealed-secrets.crt \
+      --key=/tmp/sealed-secrets.key \
+      -n kube-system
+    kubectl label secret sealed-secrets-fixed-key -n kube-system \
+      sealedsecrets.bitnami.com/sealed-secrets-key=active
+    echo "CREATED"
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: sealed_key_result
+
+- name: Sauvegarde de la clé sealed-secrets dans le home ansible
+  shell: |
+    kubectl get secret -n kube-system \
+      -l sealedsecrets.bitnami.com/sealed-secrets-key \
+      -o yaml > /home/ansible/sealed-secrets-keys-backup.yaml
+    chmod 600 /home/ansible/sealed-secrets-keys-backup.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Affichage rappel sauvegarde
+  debug:
+    msg: >
+      IMPORTANT: Sauvegarde les clés sealed-secrets !
+      Fichier: /home/ansible/sealed-secrets-keys-backup.yaml
+      Commande: scp ansible@{{ ansible_host }}:sealed-secrets-keys-backup.yaml ./sealed-secrets-keys-backup.yaml
 
 - name: Récupération du mot de passe ArgoCD initial
   shell: |
