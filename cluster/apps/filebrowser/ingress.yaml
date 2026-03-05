@@ -3,11 +3,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: filebrowser-ingress
-
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    external-dns.alpha.kubernetes.io/hostname: "filebrowser.int.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/target: "192.168.1.251"
 spec:
   ingressClassName: nginx-private
   rules:
-    - host: filebrowser.services.k8s
+    - host: filebrowser.int.fabsys.ovh
       http:
         paths:
           - path: /
@@ -17,3 +20,7 @@ spec:
                 name: filebrowser-svc
                 port:
                   number: 80
+  tls:
+    - hosts:
+        - filebrowser.int.fabsys.ovh
+      secretName: filebrowser-tls

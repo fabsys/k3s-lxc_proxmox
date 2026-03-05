@@ -9,11 +9,12 @@ argo-cd:
       enabled: true
       ingressClassName: nginx-private
       annotations:
-        nginx.ingress.kubernetes.io/ssl-redirect: "false"
-        hajimari.io/appName: ArgoCD
-        hajimari.io/icon: robot
-      hostname: "argocd.services.k8s"
-      tls: []
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+        external-dns.alpha.kubernetes.io/hostname: "argocd.int.fabsys.ovh"
+        external-dns.alpha.kubernetes.io/target: "192.168.1.251"
+      hostname: "argocd.int.fabsys.ovh"
+      tls: true
 
   configs:
     secret:

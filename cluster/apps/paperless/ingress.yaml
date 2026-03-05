@@ -2,10 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: paperless-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    external-dns.alpha.kubernetes.io/hostname: "paperless.int.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/target: "192.168.1.251"
 spec:
   ingressClassName: nginx-private
   rules:
-    - host: paperless.services.k8s
+    - host: paperless.int.fabsys.ovh
       http:
         paths:
           - path: /
@@ -15,3 +19,7 @@ spec:
                 name: paperless-ngx
                 port:
                   number: 8000
+  tls:
+    - hosts:
+        - paperless.int.fabsys.ovh
+      secretName: paperless-tls

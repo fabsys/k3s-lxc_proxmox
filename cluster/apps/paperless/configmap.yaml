@@ -7,7 +7,7 @@ data:
   PAPERLESS_DBHOST: "paperless-postgres"
   PAPERLESS_DBNAME: "paperlessdb"
   PAPERLESS_DBUSER: "paperless"
-  PAPERLESS_URL: "http://paperless.services.k8s"
+  PAPERLESS_URL: "https://paperless.int.fabsys.ovh"
   PAPERLESS_TIME_ZONE: "Europe/Paris"
   PAPERLESS_OCR_LANGUAGE: "fra+eng"
   PAPERLESS_ADMIN_USER: "admin"

@@ -26,41 +26,41 @@ data:
           description: Request media
           icon: jellyseerr.svg
       - Paperless:
-          href: https://paperless.fabsys.ovh
+          href: https://paperless.int.fabsys.ovh
           description: Document management system
           icon: paperless.svg
       - Syncthing:
-          href: http://syncthing.services.k8s/
+          href: https://syncthing.int.fabsys.ovh/
           description: Syncthing client
           icon: syncthing.svg
     - Management:
       - Qbittorrent:
-          href: http://qbittorrent.services.k8s
+          href: https://qbittorrent.int.fabsys.ovh
           description: Qbittorrent client
           icon: qbittorrent.svg
       - Joal:
-          href: http://joal.services.k8s/joal/ui
+          href: https://joal.int.fabsys.ovh/joal/ui
           description: Joal client
           icon: joal.png
       - Filebrowser:
-          href: http://filebrowser.services.k8s
+          href: https://filebrowser.int.fabsys.ovh
           description: Filebrowser
           icon: filebrowser.svg
       - Prowlarr:
-          href: https://prowlarr.services.k8s
+          href: https://prowlarr.int.fabsys.ovh
           description: Indexer manager
           icon: prowlarr.svg
       - Radarr:
-          href: https://radarr.services.k8s
+          href: https://radarr.int.fabsys.ovh
           description: Movie manager
           icon: radarr.svg
       - Sonarr:
-          href: https://sonarr.services.k8s
+          href: https://sonarr.int.fabsys.ovh
           description: TV show manager
           icon: sonarr.svg
     - Development:
       - ArgoCD:
-          href: https://argocd.services.k8s
+          href: https://argocd.int.fabsys.ovh
           description: Continuous deployment
           icon: argo-cd.svg
   bookmarks.yaml: |
