@@ -57,7 +57,7 @@ spec:
                   restic snapshots 2>/dev/null || restic init
 
                   echo "Upload chiffré vers Google Drive..."
-                  restic backup /backup/
+                  restic backup /backup/ /media/documents/
 
                   echo "Nettoyage : conservation des 7 derniers backups"
                   restic forget --keep-daily 7 --prune
@@ -67,12 +67,19 @@ spec:
               volumeMounts:
                 - name: backup-tmp
                   mountPath: /backup
+                - name: media
+                  mountPath: /media
+                  readOnly: true
                 - name: rclone-config
                   mountPath: /rclone
                   readOnly: true
           volumes:
             - name: backup-tmp
               emptyDir: {}
+            - name: media
+              hostPath:
+                path: /mnt/shared_data/paperless/media
+                type: Directory
             - name: rclone-config
               secret:
                 secretName: rclone-config
