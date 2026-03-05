@@ -1,0 +1,4 @@
+sealed-secrets:
+  # Désactive la rotation automatique des clés (tous les 30 jours par défaut)
+  # Avec une clé fixe injectée manuellement, une seule sauvegarde suffit pour toujours
+  keyrenewperiod: "0"
