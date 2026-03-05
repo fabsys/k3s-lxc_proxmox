@@ -10,7 +10,8 @@ renovate:
         "gitAuthor": "Renovate Bot <bot@renovateapp.com>",
         "repositories": [
           "fabsys/k3s-lxc_proxmox"
-        ]
+        ],
+        "requireConfig": "optional"
       }
   existingSecret: renovate-secret
 

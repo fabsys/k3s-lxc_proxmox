@@ -45,5 +45,15 @@
         '/^lscr\\.io//',
       ],
     },
+    {
+      description: 'Ignore k3s-upgrade (géré par system-upgrade-controller)',
+      matchPackageNames: ['rancher/k3s-upgrade'],
+      enabled: false,
+    },
+    {
+      description: 'Ignore shadowsocks-libev (projet abandonné, v3.3.5 = dernière version)',
+      matchPackageNames: ['shadowsocks/shadowsocks-libev'],
+      enabled: false,
+    },
   ],
 }

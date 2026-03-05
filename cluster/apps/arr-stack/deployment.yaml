@@ -80,7 +80,7 @@ spec:
       
       initContainers:
         - name: init-config
-          image: busybox:latest 
+          image: busybox:1.37.0
           env:
             - name: WEBUI_PASS
               valueFrom:
@@ -154,7 +154,7 @@ spec:
         # Partage le même pod que qBittorrent → SOCKS5 UDP ASSOCIATE sur loopback (pas de problème de ports K8s)
         # ss-local → vpn-service.gluetun.svc.cluster.local:8388 (Shadowsocks) → VPN → tracker UDP
         - name: ss-local
-          image: shadowsocks/shadowsocks-libev:latest
+          image: shadowsocks/shadowsocks-libev:v3.3.5
           command: ["ss-local"]
           args:
             - "-s"

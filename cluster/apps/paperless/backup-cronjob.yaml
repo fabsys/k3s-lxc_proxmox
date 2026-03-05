@@ -33,7 +33,7 @@ spec:
                   mountPath: /backup
           containers:
             - name: restic-upload
-              image: alpine:latest
+              image: alpine:3.21
               env:
                 - name: RESTIC_REPOSITORY
                   value: "rclone:googledrive:k3s-backups/paperless"
