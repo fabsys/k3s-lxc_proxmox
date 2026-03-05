@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: paperless-backup
+spec:
+  schedule: "0 3 * * *"   # Tous les jours à 3h00
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          initContainers:
+            - name: pg-dump
+              image: postgres:16-alpine
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: paperless-secret
+                      key: PAPERLESS_DBPASS
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Dump PostgreSQL..."
+                  pg_dump -h paperless-postgres -U paperless paperlessdb \
+                    > /backup/paperless-$(date +%Y-%m-%d).sql
+                  echo "Dump OK : $(ls -lh /backup/*.sql)"
+              volumeMounts:
+                - name: backup-tmp
+                  mountPath: /backup
+          containers:
+            - name: restic-upload
+              image: alpine:latest
+              env:
+                - name: RESTIC_REPOSITORY
+                  value: "rclone:googledrive:k3s-backups/paperless"
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: restic-secret
+                      key: RESTIC_PASSWORD
+                - name: RCLONE_CONFIG
+                  value: /rclone/rclone.conf
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache restic rclone
+
+                  # Initialiser le repo restic si première fois
+                  restic snapshots 2>/dev/null || restic init
+
+                  echo "Upload chiffré vers Google Drive..."
+                  restic backup /backup/
+
+                  echo "Nettoyage : conservation des 7 derniers backups"
+                  restic forget --keep-daily 7 --prune
+
+                  echo "Snapshots disponibles :"
+                  restic snapshots
+              volumeMounts:
+                - name: backup-tmp
+                  mountPath: /backup
+                - name: rclone-config
+                  mountPath: /rclone
+                  readOnly: true
+          volumes:
+            - name: backup-tmp
+              emptyDir: {}
+            - name: rclone-config
+              secret:
+                secretName: rclone-config
+                items:
+                  - key: rclone.conf
+                    path: rclone.conf

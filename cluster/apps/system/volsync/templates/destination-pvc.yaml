@@ -1,0 +1,29 @@
+{{- if .Values.t5810.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: t5810-nfs-pv
+spec:
+  capacity:
+    storage: {{ .Values.t5810.storageSize }}
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: {{ .Values.t5810.ip }}
+    path: {{ .Values.t5810.nfsPath }}
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: t5810-backup-repo
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: {{ .Values.t5810.storageSize }}
+  volumeName: t5810-nfs-pv
+{{- end }}

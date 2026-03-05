@@ -1,0 +1,10 @@
+volsync:
+  enabled: true
+
+# Exemples de backup vers T5810 (désactivés par défaut)
+# Mettre à true quand le T5810 est configuré en NFS
+t5810:
+  enabled: false
+  ip: "192.168.1.50"
+  nfsPath: "/data/backup/k3s"
+  storageSize: "100Gi"

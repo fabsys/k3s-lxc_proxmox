@@ -1,0 +1,32 @@
+{{- if .Values.t5810.enabled }}
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: backup-mon-app
+  namespace: mon-app
+spec:
+  sourcePVC: mon-pvc-fictif  # <--- Le PVC que tu veux sauvegarder
+  trigger:
+    schedule: "0 3 * * *"    # Cron : Tous les jours à 03h00
+  restic:
+    # On dit à Restic d'utiliser le PVC NFS comme stockage
+    repository: t5810-backup-repo 
+    # Combien de versions garder ?
+    pruneIntervalDays: 1
+    retain:
+      daily: 7   # Garder 7 jours
+      weekly: 4  # Garder 4 semaines
+    copyMethod: Snapshot # "Direct" si ton stockage ne supporte pas les snapshots CSI, sinon "Snapshot"
+    storageClassName: local-path # La classe de stockage de ton PVC source
+    volumeSnapshotClassName: csi-hostpath-snapclass # Si tu utilises les snapshots
+    
+    # Référence au secret créé étape 2
+    repositorySecurityContext:
+      runAsUser: 0 # Parfois nécessaire pour écrire sur du NFS selon tes perms
+    env:
+      - name: RESTIC_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: restic-config
+            key: RESTIC_PASSWORD
+{{- end }}

@@ -16,9 +16,12 @@ apps:
   - appName: sealed-secrets-controller
     path: cluster/apps/system/sealed-secrets
     namespace: kube-system
-  - appName: velero
-    path: cluster/apps/system/velero
-    namespace: velero
+  # - appName: velero
+  #   path: cluster/apps/system/velero
+  #   namespace: velero
+  - appName: volsync
+    path: cluster/apps/system/volsync
+    namespace: volsync-system
   - appName: external-dns
     path: cluster/apps/system/external-dns
     namespace: external-dns

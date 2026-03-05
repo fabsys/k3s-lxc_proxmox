@@ -1,0 +1,43 @@
+{{- if .Values.t5810.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wake-t5810
+  namespace: volsync-system # Ou un namespace d'admin
+spec:
+  schedule: "55 2 * * *" # 5 minutes AVANT la backup VolSync
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          hostNetwork: true # CRUCIAL pour que le WoL parte sur le vrai réseau
+          containers:
+          - name: waker
+            image: alpine:latest
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              echo "Installation des outils..."
+              apk add --no-cache wakeonlan iputils
+              
+              echo "⏰ Envoi du Magic Packet vers T5810..."
+              wakeonlan XX:XX:XX:XX:XX:XX 
+              
+              echo "⏳ Attente du ping (Max 120s)..."
+              count=0
+              # On boucle tant que le ping échoue
+              while ! ping -c 1 -W 1 192.168.1.50 > /dev/null; do
+                echo "En attente..."
+                sleep 2
+                count=$((count+2))
+                if [ $count -gt 120 ]; then 
+                  echo "❌ Timeout: Le T5810 ne se réveille pas !"
+                  exit 1
+                fi
+              done
+              
+              echo "✅ Le T5810 est réveillé et répond au Ping !"
+              # Petite pause extra pour que le service NFS soit prêt
+              sleep 10 
+          restartPolicy: OnFailure
+{{- end }}

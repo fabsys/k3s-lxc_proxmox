@@ -1,0 +1,12 @@
+apiVersion: v2
+name: volsync-stack
+description: Déploiement de l'opérateur VolSync et des outils de sauvegarde vers T5810
+type: application
+version: 0.1.0
+appVersion: "1.9.0" # Version de l'opérateur VolSync visée
+
+dependencies:
+  - name: volsync
+    version: 0.10.0  # Vérifie la dernière version stable sur ArtifactHub
+    repository: https://backube.github.io/helm-charts
+    condition: volsync.enabled
