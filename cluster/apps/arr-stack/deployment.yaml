@@ -429,36 +429,37 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-local-data
-          #image: ghcr.io/fabsys/joal:v1.0.2
-          image: anthonyraymond/joal:2.1.37
+          image: curlimages/curl:8.11.1
           command: ["/bin/sh", "-c"]
           args:
             - |
               echo "[Init] Démarrage de la synchronisation des données..."
-              
-              # 1. Copie des fichiers d'origine de l'image (/data) vers le PVC (/pvc-data)
-              # -r : Récursif
-              # -n : No-clobber (ne remplace PAS les fichiers existants pour garder votre historique)
-              # Cela va créer le dossier 'clients' s'il manque, mais garder vos stats si elles existent.
-              cp -rn /data/* /pvc-data/
-              
+
+              # 1. Téléchargement des clients depuis la release GitHub si absents
+              if [ ! -d "/pvc-data/clients" ] || [ -z "$(ls -A /pvc-data/clients 2>/dev/null)" ]; then
+                echo "[Init] Dossier clients manquant, téléchargement depuis GitHub..."
+                mkdir -p /pvc-data/clients
+                curl -sL https://github.com/anthonyraymond/joal/releases/download/2.1.37/joal.tar.gz \
+                  | tar xz -C /pvc-data clients/
+                echo "[Init] Clients téléchargés : $(ls /pvc-data/clients | wc -l) fichiers"
+              else
+                echo "[Init] Clients existants conservés ($(ls /pvc-data/clients | wc -l) fichiers)"
+              fi
+
               # 2. Injection forcée de la configuration (depuis le ConfigMap)
               echo "[Init] Mise à jour de config.json..."
               cp /config-src/config.json /pvc-data/config.json
-              
+
               # 3. Correction des permissions
               echo "[Init] Application des permissions..."
               chown -R 1000:1000 /pvc-data
-              
+
               echo "[Init] Prêt à démarrer."
           volumeMounts:
-            # On monte le PVC dans un dossier temporaire pour écrire dedans
             - name: joal-data
               mountPath: /pvc-data
-            # On monte la source de config
             - name: joal-config
               mountPath: /config-src
-            # IMPORTANT : On ne monte PAS /data ici, pour pouvoir lire les fichiers originaux de l'image
 
       containers:
         - name: joal
