@@ -17,8 +17,18 @@
       - nfs-common
       - wireguard
       - qemu-guest-agent
+      - linux-image-amd64
       - linux-headers-amd64
     state: present
+
+- name: Suppression du kernel cloud (pas de drivers GPU)
+  apt:
+    name:
+      - linux-image-cloud-amd64
+      - linux-image-6.12.73+deb13-cloud-amd64
+    state: absent
+    purge: true
+  ignore_errors: true  # Le package exact peut varier selon la version
 
 - name: Démarrage qemu-guest-agent
   systemd:
@@ -54,6 +64,17 @@
     mode: '0755'
   loop: "{{ virtiofs_mounts }}"
 
+- name: Création des sous-dossiers movies (arr-stack)
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /mnt/shared_data/movies/movies
+    - /mnt/shared_data/movies/shows
+    - /mnt/shared_data/movies/downloads
+    - /mnt/shared_data/movies/joal-import
+
 - name: Configuration des montages virtiofs dans fstab
   lineinfile:
     path: /etc/fstab
@@ -77,6 +98,7 @@
   loop:
     - br_netfilter
     - overlay
+    - i915
 
 - name: Persistance des modules au boot
   lineinfile:
@@ -86,6 +108,7 @@
   loop:
     - br_netfilter
     - overlay
+    - i915
 
 - name: Paramètres kernel pour k3s
   sysctl:

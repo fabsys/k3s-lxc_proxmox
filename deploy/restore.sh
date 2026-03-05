@@ -203,7 +203,7 @@ spec:
           image: alpine:3.23
           env:
             - name: RESTIC_REPOSITORY
-              value: "rclone:gdrive:k3s-backups/syncthing"
+              value: "rclone:googledrive:k3s-backups/syncthing"
             - name: RESTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -285,7 +285,7 @@ spec:
           image: alpine:3.23
           env:
             - name: RESTIC_REPOSITORY
-              value: "rclone:gdrive:k3s-backups/paperless"
+              value: "rclone:googledrive:k3s-backups/paperless"
             - name: RESTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
