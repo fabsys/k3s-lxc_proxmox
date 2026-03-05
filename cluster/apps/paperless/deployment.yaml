@@ -1,0 +1,167 @@
+# PostgreSQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-postgres
+  labels:
+    app: paperless-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paperless-postgres
+  template:
+    metadata:
+      labels:
+        app: paperless-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_DB
+              value: paperlessdb
+            - name: POSTGRES_USER
+              value: paperless
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: PAPERLESS_DBPASS
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 1Gi
+              cpu: 500m
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: paperless-postgres-pvc
+---
+# Redis
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-redis
+  labels:
+    app: paperless-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paperless-redis
+  template:
+    metadata:
+      labels:
+        app: paperless-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+---
+# Paperless-ngx
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ngx
+  labels:
+    app: paperless-ngx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paperless-ngx
+  template:
+    metadata:
+      labels:
+        app: paperless-ngx
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: paperless-ngx
+          image: ghcr.io/paperless-ngx/paperless-ngx:2.16.3
+          envFrom:
+            - configMapRef:
+                name: paperless-config
+          env:
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: PAPERLESS_DBPASS
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: PAPERLESS_SECRET_KEY
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: PAPERLESS_ADMIN_PASSWORD
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /api/
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: paperless-data
+              mountPath: /usr/src/paperless/data
+            - name: paperless-media
+              mountPath: /usr/src/paperless/media
+            - name: paperless-consume
+              mountPath: /usr/src/paperless/consume
+            - name: paperless-export
+              mountPath: /usr/src/paperless/export
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+      volumes:
+        - name: paperless-data
+          hostPath:
+            path: /mnt/shared_data/paperless/data
+            type: DirectoryOrCreate
+        - name: paperless-media
+          hostPath:
+            path: /mnt/shared_data/paperless/media
+            type: DirectoryOrCreate
+        - name: paperless-consume
+          hostPath:
+            path: /mnt/shared_data/paperless/consume
+            type: DirectoryOrCreate
+        - name: paperless-export
+          hostPath:
+            path: /mnt/shared_data/paperless/export
+            type: DirectoryOrCreate

@@ -1,0 +1,11 @@
+# PostgreSQL data — local-path (accès direct non nécessaire)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

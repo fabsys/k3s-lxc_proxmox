@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paperless-ingress
+spec:
+  ingressClassName: nginx-private
+  rules:
+    - host: paperless.services.k8s
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paperless-ngx
+                port:
+                  number: 8000

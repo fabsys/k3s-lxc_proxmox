@@ -77,3 +77,6 @@ apps:
   - appName: syncthing
     path: cluster/apps/syncthing
     namespace: syncthing
+  - appName: paperless
+    path: cluster/apps/paperless
+    namespace: paperless
