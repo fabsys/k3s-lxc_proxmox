@@ -13,7 +13,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: restic-backup
-              image: alpine:3.21
+              image: alpine:3.23
               env:
                 - name: RESTIC_REPOSITORY
                   value: "rclone:googledrive:k3s-backups/syncthing"
