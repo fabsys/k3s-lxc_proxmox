@@ -62,6 +62,8 @@
     path: "{{ item.path }}"
     state: directory
     mode: '0755'
+    owner: '1000'
+    group: '1000'
   loop: "{{ virtiofs_mounts }}"
 
 - name: Création des sous-dossiers movies (arr-stack)
@@ -69,6 +71,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
+    owner: '1000'
+    group: '1000'
   loop:
     - /mnt/shared_data/movies/movies
     - /mnt/shared_data/movies/shows
