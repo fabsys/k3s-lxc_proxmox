@@ -1,0 +1,85 @@
+---
+- name: Mise à jour apt
+  apt:
+    update_cache: true
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Installation des paquets requis
+  apt:
+    name:
+      - curl
+      - git
+      - wget
+      - htop
+      - vim
+      - open-iscsi
+      - nfs-common
+      - wireguard
+      - qemu-guest-agent
+      - linux-headers-amd64
+    state: present
+
+- name: Démarrage qemu-guest-agent
+  systemd:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+
+- name: Désactivation du swap
+  command: swapoff -a
+  changed_when: false
+
+- name: Suppression du swap dans fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\s+swap\s+.*)$'
+    replace: '# \1'
+
+- name: Chargement du module virtiofs
+  modprobe:
+    name: virtiofs
+    state: present
+
+- name: Persistance du module virtiofs au boot
+  lineinfile:
+    path: /etc/modules-load.d/virtiofs.conf
+    line: virtiofs
+    create: true
+
+- name: Création des points de montage virtiofs
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ virtiofs_mounts }}"
+
+- name: Configuration des montages virtiofs dans fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ item.tag }}  {{ item.path }}  virtiofs  defaults  0  0"
+    regexp: "^{{ item.tag }}\\s"
+  loop: "{{ virtiofs_mounts }}"
+
+- name: Montage des virtiofs
+  command: mount {{ item.path }}
+  loop: "{{ virtiofs_mounts }}"
+  ignore_errors: true  # Peut déjà être monté
+
+- name: Configuration du hostname
+  hostname:
+    name: k3s-control
+
+- name: Paramètres kernel pour k3s
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+  loop:
+    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { key: "net.ipv4.ip_forward", value: "1" }
+    - { key: "fs.inotify.max_user_watches", value: "524288" }
+    - { key: "fs.inotify.max_user_instances", value: "512" }

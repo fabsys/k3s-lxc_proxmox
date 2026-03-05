@@ -1,0 +1,18 @@
+# Versions
+k3s_version: "v1.33.0+k3s1"
+cilium_version: "1.17.3"
+argocd_chart_version: "7.8.26"
+
+# Réseau
+k3s_cluster_cidr: "10.42.0.0/16"
+k3s_service_cidr: "10.43.0.0/16"
+
+# GitHub
+github_repo: "https://github.com/fabsys/k3s-lxc_proxmox.git"
+
+# Virtiofs — points de montage dans la VM
+virtiofs_mounts:
+  - tag: movies
+    path: /mnt/shared_data/movies
+  - tag: paperless
+    path: /mnt/shared_data/paperless

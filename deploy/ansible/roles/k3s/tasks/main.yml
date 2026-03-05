@@ -1,0 +1,66 @@
+---
+- name: Installation de k3s (flannel désactivé pour Cilium)
+  shell: |
+    curl -sfL https://get.k3s.io | \
+    INSTALL_K3S_VERSION="{{ k3s_version }}" \
+    sh -s - \
+      --flannel-backend=none \
+      --disable-network-policy \
+      --disable=traefik \
+      --disable=servicelb \
+      --write-kubeconfig-mode=644 \
+      --cluster-cidr={{ k3s_cluster_cidr }} \
+      --service-cidr={{ k3s_service_cidr }}
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Attente que k3s soit prêt
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 120
+
+- name: Activation et démarrage k3s
+  systemd:
+    name: k3s
+    enabled: true
+    state: started
+
+- name: Création du répertoire .kube pour l'utilisateur ansible
+  file:
+    path: /home/ansible/.kube
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: '0700'
+
+- name: Copie du kubeconfig
+  copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /home/ansible/.kube/config
+    remote_src: true
+    owner: ansible
+    group: ansible
+    mode: '0600'
+
+- name: Installation de kubectl
+  get_url:
+    url: "https://dl.k8s.io/release/{{ k3s_version | regex_replace('\\+k3s.*', '') }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+
+- name: Installation de helm
+  shell: |
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Installation de kubeseal
+  shell: |
+    KUBESEAL_VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/tags | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)[0]['name'][1:])")
+    wget -q https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz \
+      -O /tmp/kubeseal.tar.gz
+    tar -xzf /tmp/kubeseal.tar.gz -C /tmp
+    install -m 755 /tmp/kubeseal /usr/local/bin/kubeseal
+  args:
+    creates: /usr/local/bin/kubeseal

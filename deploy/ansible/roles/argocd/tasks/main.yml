@@ -1,0 +1,41 @@
+---
+- name: Clone du dépôt GitOps
+  git:
+    repo: "{{ github_repo }}"
+    dest: /opt/k3s-gitops
+    version: main
+    force: false
+  become_user: ansible
+
+- name: Build des dépendances ArgoCD chart
+  shell: helm dependency build /opt/k3s-gitops/cluster/argocd/
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Installation d'ArgoCD
+  shell: |
+    helm upgrade --install argocd /opt/k3s-gitops/cluster/argocd/ \
+      --namespace argocd \
+      --create-namespace \
+      --wait \
+      --timeout 10m
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Application du root-app (bootstrap app-of-apps)
+  shell: kubectl apply -f /opt/k3s-gitops/cluster/root-app.yaml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Récupération du mot de passe ArgoCD initial
+  shell: |
+    kubectl -n argocd get secret argocd-initial-admin-secret \
+      -o jsonpath='{.data.password}' | base64 -d
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: argocd_password
+  changed_when: false
+
+- name: Affichage du mot de passe ArgoCD
+  debug:
+    msg: "ArgoCD admin password: {{ argocd_password.stdout }}"

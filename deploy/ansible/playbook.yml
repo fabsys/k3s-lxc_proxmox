@@ -1,0 +1,10 @@
+---
+- name: Bootstrap k3s homelab
+  hosts: k3s
+  become: true
+
+  roles:
+    - base
+    - k3s
+    - cilium
+    - argocd
