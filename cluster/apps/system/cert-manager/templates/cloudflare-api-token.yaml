@@ -1,14 +1,21 @@
+---
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
-  creationTimestamp: null
   name: cloudflare-api-token
   namespace: cert-manager
 spec:
   encryptedData:
-    api-token: AgBecFjWuK2xu0tTJpi/y1e6zHFvxR7+V0pR8/akIGDGha1aY7LYl3TIwzRW1uq5c/rnZ4E4l+FNCLJnBhIi7+g6OkcqDTQ2zZyx5BltPH8dGMPG8yQ558VTYdvpczLm53J/Ii3Vr0tpxUG1tcief03RNKmj5ohtnRj33UeIwKE46KKSRzuupdPg0zl1RRF/ObLiaSWSFCgFRm8X7vvpsQiM7e7JdbVXSzpGcZpxMHMsY2vmiQmPZwvxamm39pnUd0e8rtgVRqjxXwSpO1VNnY4b3l339148Q4KOsnG/IKUI1/sHle8lMUN+JILdcgQtkeHy7sKbWiC6NatrLXoQAwPCRoigbscP0vbviIgyQgE6aYmhankAfVJqaHzL1bzbRz+QmWep5PrtExDpjtPWrlP74SizE787gwHRbuXvg2QD8CpGobPI9QDJZVdoX72VlnYnLbTn5+eUBoUrcKsO11F76+M4AGCEWah/hkD6VyfKiqQxnCh91CikYuCSkT+9kUmC9XOtzBtAxVoQkJSCPcb9a76vsHVmbMLIIW3FyjGyCle/rXF1MfPngBj+Gxpc5KZbF9gAfTZJSa/G/i7w7kBzulUchc0253UyqDE0CyEn5ZUxbhqmSUS4xeoanXF2g0FrpYsejEAqNgjBsX7mZQEll3UlWzODEz/dfnyMDnhzYcET3KzKXsUk7S7CuVuLKcHZHMJRFqAELgpJuN6xUsXq4ZpX26j2OPeFrn3e1UxO1LyApjhwlCDN
+    api-token: AgCOJCW98tSQDPTSdahlOV6QvG1SlBKkD5KBQHlsD3g6fTVI/526d3rsvfrHr1dEdMuVQ59D9rwhsu7bHE1RI/N7abBIxE0jgr3Mi+GDykrFF3Pb9blZ/+r8hQ2LucbV5+CCOoQvYn6iGZi2V467fawIrLiCeUmWxukdWMfaJtYw9dB4eqUnimruLvGF9ZfXAxx9Qm4tikvCFS/VI5Rm+y1UlTEUh4TjCkH9jZyeqzeO4jyzHkY9s16wNrnkmsfFII838+i/vewP6DBsQylNkFAm/s+oRxZO/jVwFH7klS+xQ2Hdq/ElOhmgTrEWiojybxfTX4CjGUrANfjKzYJWCuO54QNOCOVUd/ZDzxyCNt1WtAm75tcUGklSjyvaOesLz07VWXW3KIQVsNbzbNifgQEzn3jZOdT+0OPfKPirDfSazPVRfcRjAge4+FjBe+NigfsnK3Mr/4WZHJeuQEU3z+mR51G+nxaNwp84+yLHoCre7oPCeoyuJECr+RyIwhTFv17wgcGEWHb+G2NOHd+MaWr8oLn5TND7TXIQNCNybXZDy8zgPvTjvzQhy38vy7aEqdXjsyreAHhhw/TjVIDePN9E9I7xpE8it5AiOhlZDN7KKPUAFFUUQdHqDCTbDVjhjfhLptIcZN6uC+JFYMFZBEBDOkzjDRSjXmTwNNU0MZcOoh5111B8kXdRb1ZXrEhhuplraSfPW1l5LBk7zC1FeYm5mHuwrtwkgERrao3Ja4pFcUDaHI5gfxVV
   template:
     metadata:
-      creationTimestamp: null
       name: cloudflare-api-token
       namespace: cert-manager
+
+
+
+  # kubectl create secret generic cloudflare-api-token \
+  #   --from-literal=api-token="${CF_TOKEN}" \
+  #   -n cert-manager --dry-run=client -o yaml \
+  # | kubeseal --cert sealed-secrets-fixed-key.pem -o yaml \
+  # > cluster/apps/system/cert-manager/templates/cloudflare-api-token.yaml
