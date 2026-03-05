@@ -19,6 +19,9 @@ apps:
   # - appName: velero
   #   path: cluster/apps/system/velero
   #   namespace: velero
+  - appName: snapshot-controller
+    path: cluster/apps/system/snapshot-controller
+    namespace: kube-system
   - appName: volsync
     path: cluster/apps/system/volsync
     namespace: volsync-system

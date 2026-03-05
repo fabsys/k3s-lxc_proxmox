@@ -1,0 +1,4 @@
+apiVersion: v2
+name: snapshot-controller
+description: CSI VolumeSnapshot CRDs and snapshot-controller (external-snapshotter v8.5.0)
+version: 8.5.0
