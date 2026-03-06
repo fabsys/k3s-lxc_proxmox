@@ -16,6 +16,7 @@ ingress-nginx:
     config:
       whitelist-source-range: "192.168.1.0/24"
       allow-snippet-annotations: "true"
+      annotations-risk-level: "Critical"
     metrics:
       enabled: false
     admissionWebhooks:
