@@ -15,6 +15,7 @@ ingress-nginx:
         metallb.io/loadBalancerIPs: 192.168.1.251
     config:
       whitelist-source-range: "192.168.1.0/24"
+      allow-snippet-annotations: "true"
     metrics:
       enabled: false
     admissionWebhooks:
