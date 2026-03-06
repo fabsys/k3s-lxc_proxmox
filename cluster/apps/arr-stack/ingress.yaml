@@ -177,8 +177,32 @@ spec:
     - host: joal.int.fabsys.ovh
       http:
         paths:
-          - path: /
+          - path: /joal
             pathType: Prefix
+            backend:
+              service:
+                name: joal
+                port:
+                  number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: joal-ws-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /joal
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "joal"
+spec:
+  ingressClassName: nginx-private
+  rules:
+    - host: joal.int.fabsys.ovh
+      http:
+        paths:
+          - path: /
+            pathType: Exact
             backend:
               service:
                 name: joal
