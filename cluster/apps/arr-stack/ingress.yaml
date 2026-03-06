@@ -165,14 +165,9 @@ kind: Ingress
 metadata:
   name: joal-ingress
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     external-dns.alpha.kubernetes.io/hostname: "joal.int.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "192.168.1.251"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      if ($http_upgrade = "websocket") {
-          rewrite ^/$ /joal break;
-      }
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/websocket-services: "joal"
@@ -189,7 +184,3 @@ spec:
                 name: joal
                 port:
                   number: 8080
-  tls:
-    - hosts:
-        - joal.int.fabsys.ovh
-      secretName: joal-tls
