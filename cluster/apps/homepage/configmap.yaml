@@ -39,7 +39,7 @@ data:
           description: Qbittorrent client
           icon: qbittorrent.svg
       - Joal:
-          href: https://joal.int.fabsys.ovh/joal/ui
+          href: http://joal.int.fabsys.ovh/joal/ui
           description: Joal client
           icon: joal.png
       - Filebrowser:

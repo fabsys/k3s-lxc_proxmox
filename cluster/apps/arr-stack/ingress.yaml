@@ -168,6 +168,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     external-dns.alpha.kubernetes.io/hostname: "joal.int.fabsys.ovh"
     external-dns.alpha.kubernetes.io/target: "192.168.1.251"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx-private
   rules:
