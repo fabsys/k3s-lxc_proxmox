@@ -172,6 +172,9 @@ metadata:
       if ($http_upgrade = "websocket") {
           rewrite ^/$ /joal break;
       }
+      proxy_set_header Accept-Encoding "";
+      sub_filter '</head>' '<script>if(!localStorage.getItem("guiConfig")){localStorage.setItem("guiConfig",JSON.stringify({host:window.location.hostname,port:window.location.port||"80",pathPrefix:window.location.pathname.substring(1,window.location.pathname.lastIndexOf("/ui"))||"",secretToken:"token"}))}</script></head>';
+      sub_filter_once on;
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/websocket-services: "joal"
