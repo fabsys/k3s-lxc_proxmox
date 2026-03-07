@@ -80,8 +80,11 @@ data:
         - href: https://192.168.1.1
           icon: router.svg
       - Proxmox:
-        - href: https://pve.lan:8006
+        - href: https://pve.int.fabsys.ovh:8006
           icon: proxmox.svg
+      - Pi-hole:
+        - href: http://pihole.int.fabsys.ovh/admin
+          icon: pi-hole.svg
       - Google Cloud:
         - href: https://console.cloud.google.com
           icon: google-cloud-platform.svg

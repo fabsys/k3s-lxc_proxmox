@@ -32,6 +32,11 @@ external-dns:
 
 
 
+  sources:
+    - ingress
+    - service
+    - crd
+
   provider:
     name: cloudflare
     #proxied: true
