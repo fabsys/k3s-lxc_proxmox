@@ -1,4 +1,10 @@
 ---
+- name: Activation des dépôts contrib/non-free/non-free-firmware
+  replace:
+    path: /etc/apt/sources.list.d/debian.sources
+    regexp: '^Components:\s+main$'
+    replace: 'Components: main contrib non-free non-free-firmware'
+
 - name: Mise à jour apt
   apt:
     update_cache: true
@@ -19,6 +25,8 @@
       - qemu-guest-agent
       - linux-image-amd64
       - linux-headers-amd64
+      - firmware-intel-graphics
+      - intel-gpu-tools
     state: present
 
 - name: Suppression du kernel cloud (pas de drivers GPU)
