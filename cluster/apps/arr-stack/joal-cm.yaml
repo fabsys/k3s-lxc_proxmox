@@ -6,8 +6,8 @@ data:
   config.json: |
     {
       "minUploadRate": 30,
-      "maxUploadRate": 270,
-      "simultaneousSeed": 150,
+      "maxUploadRate": 5000,
+      "simultaneousSeed": 350,
       "client": "qbittorrent-4.3.9.client",
       "keepTorrentWithZeroLeechers": true,
       "uploadRatioTarget": -1.0
