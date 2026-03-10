@@ -27,7 +27,26 @@
       - linux-headers-amd64
       - firmware-intel-graphics
       - intel-gpu-tools
+      - parted
     state: present
+
+- name: Création du système de fichiers sur le disque de données (/dev/sdb)
+  filesystem:
+    fstype: ext4
+    dev: /dev/sdb
+
+- name: Création du dossier /var/lib/rancher
+  file:
+    path: /var/lib/rancher
+    state: directory
+    mode: '0755'
+
+- name: Montage du disque de données sur /var/lib/rancher
+  mount:
+    path: /var/lib/rancher
+    src: /dev/sdb
+    fstype: ext4
+    state: mounted
 
 - name: Suppression du kernel cloud (pas de drivers GPU)
   apt:
