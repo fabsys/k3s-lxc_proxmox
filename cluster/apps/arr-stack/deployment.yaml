@@ -401,7 +401,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: jellyseerr
-          image: ghcr.io/seerr-team/seerr:3.1.0
+          image: ghcr.io/seerr-team/seerr:v3.1.0
           resources:
             requests:
               memory: "256Mi"
