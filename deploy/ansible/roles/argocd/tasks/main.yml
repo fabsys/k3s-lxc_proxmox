@@ -3,8 +3,8 @@
   file:
     path: /opt/k3s-gitops
     state: directory
-    owner: ansible
-    group: ansible
+    owner: "{{ k3s_user }}"
+    group: "{{ k3s_user }}"
     mode: '0755'
 
 - name: Clone du dépôt GitOps
@@ -13,7 +13,7 @@
     dest: /opt/k3s-gitops
     version: main
     force: false
-  become_user: ansible
+  become_user: "{{ k3s_user }}"
 
 - name: Build des dépendances ArgoCD chart
   shell: helm dependency build /opt/k3s-gitops/cluster/argocd/
@@ -68,12 +68,12 @@
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
   register: sealed_key_result
 
-- name: Sauvegarde de la clé sealed-secrets dans le home ansible
+- name: Sauvegarde de la clé sealed-secrets dans le home
   shell: |
     kubectl get secret -n kube-system \
       -l sealedsecrets.bitnami.com/sealed-secrets-key \
-      -o yaml > /home/ansible/sealed-secrets-keys-backup.yaml
-    chmod 600 /home/ansible/sealed-secrets-keys-backup.yaml
+      -o yaml > {{ k3s_home }}/sealed-secrets-keys-backup.yaml
+    chmod 600 {{ k3s_home }}/sealed-secrets-keys-backup.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
@@ -81,8 +81,8 @@
   debug:
     msg: >
       IMPORTANT: Sauvegarde les clés sealed-secrets !
-      Fichier: /home/ansible/sealed-secrets-keys-backup.yaml
-      Commande: scp ansible@{{ ansible_host }}:sealed-secrets-keys-backup.yaml ./sealed-secrets-keys-backup.yaml
+      Fichier: {{ k3s_home }}/sealed-secrets-keys-backup.yaml
+      Commande: scp {{ k3s_user }}@{{ ansible_host }}:sealed-secrets-keys-backup.yaml ./sealed-secrets-keys-backup.yaml
 
 - name: Récupération du mot de passe ArgoCD initial
   shell: |

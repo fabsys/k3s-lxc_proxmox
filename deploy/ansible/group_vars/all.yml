@@ -1,11 +1,27 @@
+# Configuration Déploiement
+k3s_target: "vm" # vm ou lxc
+
+# Utilisateur système selon le mode de déploiement
+k3s_user: "{{ 'root' if k3s_target == 'lxc' else 'ansible' }}"
+k3s_home: "{{ '/root' if k3s_target == 'lxc' else '/home/ansible' }}"
+k3s_cni: "cilium" # cilium ou calico
+gpu_type: "amd" # intel ou amd
+
 # Versions
 k3s_version: "v1.33.0+k3s1"
 cilium_version: "1.17.3"
+calico_version: "3.29.2"
 argocd_chart_version: "7.8.26"
 
 # Réseau
 k3s_cluster_cidr: "10.42.0.0/16"
 k3s_service_cidr: "10.43.0.0/16"
+
+# Isolation des ressources (Kubelet args)
+k3s_system_reserved_cpu: "500m"
+k3s_system_reserved_memory: "512Mi"
+k3s_kube_reserved_cpu: "500m"
+k3s_kube_reserved_memory: "512Mi"
 
 # GitHub
 github_repo: "https://github.com/fabsys/k3s-lxc_proxmox.git"

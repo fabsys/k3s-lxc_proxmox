@@ -1,0 +1,24 @@
+---
+- name: Persistance des paramètres sysctl sur Proxmox
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+  loop:
+    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { key: "net.ipv4.ip_forward", value: "1" }
+
+- name: Chargement et persistance du module br_netfilter (si non built-in)
+  lineinfile:
+    path: /etc/modules-load.d/k3s-pve.conf
+    line: br_netfilter
+    create: true
+  register: pve_modules
+
+- name: Application immédiate du module br_netfilter
+  command: modprobe br_netfilter
+  when: pve_modules.changed
+  ignore_errors: true # Au cas où il serait déjà built-in

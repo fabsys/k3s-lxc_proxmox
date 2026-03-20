@@ -1,3 +1,9 @@
+variable "deployment_type" {
+  description = "Type de déploiement (vm ou lxc)"
+  type        = string
+  default     = "vm"
+}
+
 variable "proxmox_endpoint" {
   description = "URL de l'API Proxmox (ex: https://192.168.1.10:8006)"
   type        = string
@@ -27,8 +33,14 @@ variable "vm_id" {
   default     = 200
 }
 
+variable "lxc_id" {
+  description = "ID du conteneur LXC"
+  type        = number
+  default     = 300
+}
+
 variable "vm_ip" {
-  description = "IP statique de la VM (ex: 192.168.1.100/24)"
+  description = "IP statique de la VM ou du LXC (ex: 192.168.1.100/24)"
   type        = string
 }
 
@@ -45,7 +57,13 @@ variable "vm_console_password" {
 }
 
 variable "ssh_public_key" {
-  description = "Clé SSH publique pour accéder à la VM"
+  description = "Clé SSH publique pour accéder à la VM ou au LXC"
   type        = string
+}
+
+variable "network_vlan" {
+  description = "Tag VLAN pour l'interface réseau"
+  type        = number
+  default     = 0
 }
 

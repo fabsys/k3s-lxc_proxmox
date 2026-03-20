@@ -1,10 +1,21 @@
 ---
+# --- PARTIE 1 : Configuration de l'Hôte Proxmox (PVE) ---
+# On ne configure l'hôte que pour le mode LXC (partage du noyau)
+- name: Configuration de l'hôte Proxmox (PVE)
+  hosts: pve
+  become: true
+  tasks:
+    - include_role:
+        name: pve_host
+      when: k3s_target == 'lxc'
+
+# --- PARTIE 2 : Configuration du Cluster K3s ---
 - name: Bootstrap k3s homelab
   hosts: k3s
   become: true
-
   roles:
     - base
     - k3s
-    - cilium
+    - { role: cilium, when: k3s_cni == 'cilium' }
+    - { role: calico, when: k3s_cni == 'calico' }
     - argocd

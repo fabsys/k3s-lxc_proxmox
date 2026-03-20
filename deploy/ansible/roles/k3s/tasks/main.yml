@@ -1,5 +1,5 @@
 ---
-- name: Installation de k3s (flannel désactivé pour Cilium)
+- name: Installation de k3s (CNI externe, isolation ressources)
   shell: |
     curl -sfL https://get.k3s.io | \
     INSTALL_K3S_VERSION="{{ k3s_version }}" \
@@ -8,16 +8,92 @@
       --disable-network-policy \
       --disable=traefik \
       --disable=servicelb \
+      --disable=cloud-controller \
       --write-kubeconfig-mode=644 \
       --cluster-cidr={{ k3s_cluster_cidr }} \
-      --service-cidr={{ k3s_service_cidr }}
+      --service-cidr={{ k3s_service_cidr }} \
+      --kubelet-arg=protect-kernel-defaults=false \
+      --kubelet-arg="system-reserved=cpu={{ k3s_system_reserved_cpu }},memory={{ k3s_system_reserved_memory }}" \
+      --kubelet-arg="kube-reserved=cpu={{ k3s_kube_reserved_cpu }},memory={{ k3s_kube_reserved_memory }}" \
+      --kubelet-arg="eviction-hard=imagefs.available<5%,nodefs.available<5%"
   args:
     creates: /usr/local/bin/k3s
 
-- name: Attente que k3s soit prêt
+- name: Fix /dev/kmsg pour LXC (lien vers /dev/console)
+  shell: |
+    if [ ! -e /dev/kmsg ]; then
+      ln -s /dev/console /dev/kmsg
+    fi
+  when: k3s_target == 'lxc'
+  args:
+    creates: /dev/kmsg
+
+- name: Configuration du service k3s (Template propre pour LXC)
+  copy:
+    dest: /etc/systemd/system/k3s.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Lightweight Kubernetes
+      Documentation=https://k3s.io
+      Wants=network-online.target
+      After=network-online.target
+
+      [Install]
+      WantedBy=multi-user.target
+
+      [Service]
+      Type=notify
+      EnvironmentFile=-/etc/default/%N
+      EnvironmentFile=-/etc/sysconfig/%N
+      EnvironmentFile=-/etc/systemd/system/k3s.service.env
+      KillMode=process
+      Delegate=yes
+      User=root
+      LimitNOFILE=1048576
+      LimitNPROC=infinity
+      LimitCORE=infinity
+      TasksMax=infinity
+      TimeoutStartSec=0
+      Restart=always
+      RestartSec=5s
+      ExecStart=/usr/local/bin/k3s server \
+        --flannel-backend=none \
+        --disable-network-policy \
+        --disable=traefik \
+        --disable=servicelb \
+        --disable=cloud-controller \
+        --write-kubeconfig-mode=644 \
+        --cluster-cidr={{ k3s_cluster_cidr }} \
+        --service-cidr={{ k3s_service_cidr }} \
+        --kubelet-arg=protect-kernel-defaults=false \
+        --kubelet-arg=system-reserved=cpu={{ k3s_system_reserved_cpu }},memory={{ k3s_system_reserved_memory }} \
+        --kubelet-arg=kube-reserved=cpu={{ k3s_kube_reserved_cpu }},memory={{ k3s_kube_reserved_memory }} \
+        --kubelet-arg=eviction-hard=imagefs.available<5%,nodefs.available<5%
+  when: k3s_target == 'lxc'
+  register: k3s_service_config
+
+- name: Reload systemd et redémarrage k3s
+  systemd:
+    daemon_reload: true
+    name: k3s
+    state: restarted
+  when: k3s_service_config.changed
+
+- name: Attente que k3s soit prêt (kubeconfig)
   wait_for:
     path: /etc/rancher/k3s/k3s.yaml
     timeout: 120
+
+- name: Attente que l'API server k3s soit joignable (port 6443)
+  wait_for:
+    host: 127.0.0.1
+    port: 6443
+    state: started
+    timeout: 180
+    delay: 5
 
 - name: Activation et démarrage k3s
   systemd:
@@ -25,21 +101,33 @@
     enabled: true
     state: started
 
-- name: Création du répertoire .kube pour l'utilisateur ansible
+- name: Définition des variables kubeconfig (LXC)
+  set_fact:
+    k3s_user: "root"
+    k3s_home: "/root"
+  when: k3s_target == 'lxc'
+
+- name: Définition des variables kubeconfig (VM)
+  set_fact:
+    k3s_user: "ansible"
+    k3s_home: "/home/ansible"
+  when: k3s_target == 'vm'
+
+- name: Création du répertoire .kube
   file:
-    path: /home/ansible/.kube
+    path: "{{ k3s_home }}/.kube"
     state: directory
-    owner: ansible
-    group: ansible
+    owner: "{{ k3s_user }}"
+    group: "{{ k3s_user }}"
     mode: '0700'
 
 - name: Copie du kubeconfig
   copy:
     src: /etc/rancher/k3s/k3s.yaml
-    dest: /home/ansible/.kube/config
+    dest: "{{ k3s_home }}/.kube/config"
     remote_src: true
-    owner: ansible
-    group: ansible
+    owner: "{{ k3s_user }}"
+    group: "{{ k3s_user }}"
     mode: '0600'
 
 - name: Installation de kubectl
@@ -64,3 +152,12 @@
     install -m 755 /tmp/kubeseal /usr/local/bin/kubeseal
   args:
     creates: /usr/local/bin/kubeseal
+
+- name: Alias k=kubectl dans le profil shell
+  lineinfile:
+    path: "{{ k3s_home }}/.bashrc"
+    line: "alias k='kubectl'"
+    create: yes
+    owner: "{{ k3s_user }}"
+    group: "{{ k3s_user }}"
+    mode: '0644'

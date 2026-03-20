@@ -1,0 +1,31 @@
+---
+- name: Ajout du repo Helm Calico (Tigera)
+  shell: helm repo add projectcalico https://docs.tigera.io/calico/charts && helm repo update
+  changed_when: false
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Installation de Calico via Tigera Operator
+  shell: |
+    helm upgrade --install calico projectcalico/tigera-operator \
+      --version v{{ calico_version }} \
+      --namespace tigera-operator \
+      --create-namespace
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Attente que l'opérateur Tigera soit prêt
+  shell: |
+    kubectl -n tigera-operator rollout status deployment/tigera-operator --timeout=300s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Attente que les nœuds soient Ready (Calico configuré)
+  shell: |
+    kubectl wait node --all --for=condition=Ready --timeout=300s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  retries: 10
+  delay: 15
+  register: result
+  until: result.rc == 0

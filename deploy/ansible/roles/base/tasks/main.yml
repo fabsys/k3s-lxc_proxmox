@@ -4,6 +4,7 @@
     path: /etc/apt/sources.list.d/debian.sources
     regexp: '^Components:\s+main$'
     replace: 'Components: main contrib non-free non-free-firmware'
+  when: k3s_target == 'vm' # In LXC, we usually inherit sources or they are already configured
 
 - name: Mise à jour apt
   apt:
@@ -11,7 +12,7 @@
     upgrade: dist
     cache_valid_time: 3600
 
-- name: Installation des paquets requis
+- name: Installation des paquets de base
   apt:
     name:
       - curl
@@ -22,135 +23,128 @@
       - open-iscsi
       - nfs-common
       - wireguard
+    state: present
+
+- name: Installation des paquets spécifiques VM
+  apt:
+    name:
       - qemu-guest-agent
       - linux-image-amd64
       - linux-headers-amd64
-      - firmware-intel-graphics
-      - intel-gpu-tools
       - parted
     state: present
+  when: k3s_target == 'vm'
 
-- name: Création du système de fichiers sur le disque de données (/dev/sdb)
-  filesystem:
-    fstype: ext4
-    dev: /dev/sdb
-
-- name: Création du dossier /var/lib/rancher
-  file:
-    path: /var/lib/rancher
-    state: directory
-    mode: '0755'
-
-- name: Montage du disque de données sur /var/lib/rancher
-  mount:
-    path: /var/lib/rancher
-    src: /dev/sdb
-    fstype: ext4
-    state: mounted
-
-- name: Suppression du kernel cloud (pas de drivers GPU)
+- name: Configuration GPU Intel - Drivers & Tools
   apt:
     name:
-      - linux-image-cloud-amd64
-      - linux-image-6.12.73+deb13-cloud-amd64
-    state: absent
-    purge: true
-  ignore_errors: true  # Le package exact peut varier selon la version
+      - intel-gpu-tools
+      - va-driver-all
+    state: present
+  when: gpu_type == 'intel'
+
+- name: Configuration GPU Intel - Firmware (VM uniquement)
+  apt:
+    name:
+      - firmware-intel-graphics
+    state: present
+  when: gpu_type == 'intel' and k3s_target == 'vm'
+
+- name: Configuration GPU AMD (Radeon 780M) - Drivers & Tools
+  apt:
+    name:
+      - libva-drm2
+      - mesa-va-drivers
+      - radeontop
+    state: present
+  when: gpu_type == 'amd'
+
+- name: Configuration GPU AMD (Radeon 780M) - Firmware (VM uniquement)
+  apt:
+    name:
+      - firmware-amd-graphics
+    state: present
+  when: gpu_type == 'amd' and k3s_target == 'vm'
+
+- name: Configuration Disque de données (VM uniquement)
+  block:
+    - name: Création du système de fichiers sur /dev/sdb
+      filesystem:
+        fstype: ext4
+        dev: /dev/sdb
+    - name: Création du dossier /var/lib/rancher
+      file:
+        path: /var/lib/rancher
+        state: directory
+        mode: '0755'
+    - name: Montage du disque de données
+      mount:
+        path: /var/lib/rancher
+        src: /dev/sdb
+        fstype: ext4
+        state: mounted
+  when: k3s_target == 'vm'
 
 - name: Démarrage qemu-guest-agent
   systemd:
     name: qemu-guest-agent
     enabled: true
     state: started
+  when: k3s_target == 'vm'
 
 - name: Désactivation du swap
   command: swapoff -a
   changed_when: false
 
-- name: Suppression du swap dans fstab
-  replace:
-    path: /etc/fstab
-    regexp: '^([^#].*\s+swap\s+.*)$'
-    replace: '# \1'
+- name: Configuration Virtiofs (VM uniquement)
+  block:
+    - name: Chargement du module virtiofs
+      modprobe:
+        name: virtiofs
+        state: present
+    - name: Création des points de montage
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: '0755'
+        owner: '1000'
+        group: '1000'
+      loop: "{{ virtiofs_mounts }}"
+    - name: Montage fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ item.tag }}  {{ item.path }}  virtiofs  defaults  0  0"
+        regexp: "^{{ item.tag }}\\s"
+      loop: "{{ virtiofs_mounts }}"
+    - name: Execution montage
+      command: mount {{ item.path }}
+      loop: "{{ virtiofs_mounts }}"
+      ignore_errors: true
+  when: k3s_target == 'vm' and virtiofs_mounts is defined
 
-- name: Chargement du module virtiofs
-  modprobe:
-    name: virtiofs
-    state: present
-
-- name: Persistance du module virtiofs au boot
-  lineinfile:
-    path: /etc/modules-load.d/virtiofs.conf
-    line: virtiofs
-    create: true
-
-- name: Création des points de montage virtiofs
-  file:
-    path: "{{ item.path }}"
-    state: directory
-    mode: '0755'
-    owner: '1000'
-    group: '1000'
-  loop: "{{ virtiofs_mounts }}"
-
-- name: Création des sous-dossiers movies (arr-stack)
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-    owner: '1000'
-    group: '1000'
-  loop:
-    - /mnt/shared_data/movies/movies
-    - /mnt/shared_data/movies/shows
-    - /mnt/shared_data/movies/downloads
-    - /mnt/shared_data/movies/joal-import
-
-- name: Configuration des montages virtiofs dans fstab
-  lineinfile:
-    path: /etc/fstab
-    line: "{{ item.tag }}  {{ item.path }}  virtiofs  defaults  0  0"
-    regexp: "^{{ item.tag }}\\s"
-  loop: "{{ virtiofs_mounts }}"
-
-- name: Montage des virtiofs
-  command: mount {{ item.path }}
-  loop: "{{ virtiofs_mounts }}"
-  ignore_errors: true  # Peut déjà être monté
-
-- name: Configuration du hostname
+- name: Configuration Hostname
   hostname:
-    name: k3s-control
+    name: "{{ 'k3s-lxc' if k3s_target == 'lxc' else 'k3s-control' }}"
 
-- name: Chargement des modules kernel requis pour k3s
-  modprobe:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - br_netfilter
-    - overlay
-    - i915
-
-- name: Persistance des modules au boot
-  lineinfile:
-    path: /etc/modules-load.d/k3s.conf
-    line: "{{ item }}"
-    create: true
-  loop:
-    - br_netfilter
-    - overlay
-    - i915
-
-- name: Paramètres kernel pour k3s
-  sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    sysctl_set: true
-    state: present
-    reload: true
-  loop:
-    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
-    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
-    - { key: "net.ipv4.ip_forward", value: "1" }
-    - { key: "fs.inotify.max_user_watches", value: "524288" }
-    - { key: "fs.inotify.max_user_instances", value: "512" }
+- name: Paramètres kernel pour k3s (VM uniquement pour sysctl/modprobe)
+  block:
+    - name: Chargement des modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+        - "{{ 'i915' if gpu_type == 'intel' else 'amdgpu' }}"
+    - name: Sysctl k3s
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: true
+        state: present
+        reload: true
+      loop:
+        - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+        - { key: "net.ipv4.ip_forward", value: "1" }
+  when: k3s_target == 'vm'

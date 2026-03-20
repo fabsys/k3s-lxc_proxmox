@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ============================================================
-# Bootstrap k3s homelab — Proxmox + Ansible
+# Bootstrap k3s homelab — Proxmox + Ansible (Tofu/Terraform)
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,13 +21,20 @@ success() { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
+# Détection de l'outil IaC (OpenTofu ou Terraform)
+TF_BIN=""
+if command -v tofu &>/dev/null; then
+  TF_BIN="tofu"
+elif command -v terraform &>/dev/null; then
+  TF_BIN="terraform"
+fi
+
 ask() {
   local var_name="$1"
   local prompt="$2"
   local default="${3:-}"
   local secret="${4:-false}"
 
-  # Priorité : valeur déjà en cache > default passé en argument
   local cached="${!var_name:-}"
   local effective_default="${cached:-$default}"
 
@@ -40,10 +47,10 @@ ask() {
   fi
 
   if [[ "$secret" == "true" ]]; then
-    read -rsp "$prompt : " value
+    read -rsp "$prompt : " value || echo
     echo
   else
-    read -rp "$prompt : " value
+    read -rp "$prompt : " value || echo
   fi
 
   value="${value:-$effective_default}"
@@ -57,51 +64,54 @@ load_cache() {
   if [[ -f "$CACHE_FILE" ]]; then
     # shellcheck source=/dev/null
     source "$CACHE_FILE"
-    info "Config précédente chargée depuis .provision.env (Entrée pour garder, ou nouvelle valeur)"
+    info "Config précédente chargée depuis .provision.env"
   fi
 }
 
 save_cache() {
   cat > "$CACHE_FILE" <<EOF
-PROXMOX_ENDPOINT="$PROXMOX_ENDPOINT"
-PROXMOX_USER="$PROXMOX_USER"
-PROXMOX_NODE="$PROXMOX_NODE"
-VM_ID="$VM_ID"
-VM_IP="$VM_IP"
-VM_GATEWAY="$VM_GATEWAY"
-SSH_PUBLIC_KEY="$SSH_PUBLIC_KEY"
+PROXMOX_ENDPOINT="${PROXMOX_ENDPOINT:-}"
+PROXMOX_USER="${PROXMOX_USER:-}"
+PROXMOX_NODE="${PROXMOX_NODE:-}"
+DEPLOYMENT_TYPE="${DEPLOYMENT_TYPE:-}"
+K3S_CNI="${K3S_CNI:-}"
+GPU_TYPE="${GPU_TYPE:-}"
+VM_ID="${VM_ID:-}"
+LXC_ID="${LXC_ID:-}"
+VM_IP="${VM_IP:-}"
+VM_GATEWAY="${VM_GATEWAY:-}"
+NETWORK_VLAN="${NETWORK_VLAN:-}"
+SSH_PUBLIC_KEY="${SSH_PUBLIC_KEY:-}"
 EOF
-  # Le mot de passe n'est PAS mis en cache
   chmod 600 "$CACHE_FILE"
 }
 
-# ============================================================
-# Vérification des prérequis
-# ============================================================
 check_prerequisites() {
   info "Vérification des prérequis..."
   local missing=()
-
-  command -v terraform  &>/dev/null || missing+=("terraform")
+  
+  if [[ -z "$TF_BIN" ]]; then
+    missing+=("opentofu ou terraform")
+  fi
   command -v ansible-playbook &>/dev/null || missing+=("ansible")
   command -v ssh        &>/dev/null || missing+=("ssh")
-
+  
   if [[ ${#missing[@]} -gt 0 ]]; then
-    error "Outils manquants : ${missing[*]}\nInstalle-les et relance le script."
+    error "Outils manquants : ${missing[*]}"
   fi
-  success "Prérequis OK"
+  success "Prérequis OK (Utilisation de : $TF_BIN)"
 }
 
-# ============================================================
-# Collecte des informations
-# ============================================================
 collect_inputs() {
   load_cache
-  echo
   echo -e "${CYAN}============================================================${NC}"
-  echo -e "${CYAN}   Configuration du cluster k3s${NC}"
+  echo -e "${CYAN}   Configuration du cluster k3s (Hybride VM/LXC)${NC}"
   echo -e "${CYAN}============================================================${NC}"
-  echo
+
+  echo -e "${YELLOW}--- Architecture ---${NC}"
+  ask DEPLOYMENT_TYPE     "Type de déploiement (vm/lxc)" "lxc"
+  ask K3S_CNI            "CNI (cilium/calico)"          "calico"
+  ask GPU_TYPE            "Type de GPU (intel/amd)"      "amd"
 
   echo -e "${YELLOW}--- Proxmox ---${NC}"
   ask PROXMOX_ENDPOINT    "URL API Proxmox"              "https://192.168.1.10:8006"
@@ -109,142 +119,109 @@ collect_inputs() {
   ask PROXMOX_NODE        "Nom du nœud Proxmox"          "pve"
   echo -n "Mot de passe Proxmox : "
   read -rsp "" PROXMOX_PASSWORD; echo
-  [[ -z "$PROXMOX_PASSWORD" ]] && error "Mot de passe Proxmox obligatoire."
 
-  echo
-  echo -e "${YELLOW}--- VM Console ---${NC}"
-  echo -n "Mot de passe console VM (accès urgence via Proxmox) : "
+  echo -e "${YELLOW}--- Sécurité ---${NC}"
+  echo -n "Mot de passe console/root (accès urgence) : "
   read -rsp "" VM_CONSOLE_PASSWORD; echo
-  [[ -z "$VM_CONSOLE_PASSWORD" ]] && error "Mot de passe console VM obligatoire."
 
-  echo
-  echo -e "${YELLOW}--- VM ---${NC}"
-  ask VM_ID             "ID de la VM"               "200"
-  ask VM_IP             "IP statique de la VM (ex: 192.168.1.100/24)"
+  echo -e "${YELLOW}--- Réseau ---${NC}"
+  if [[ "$DEPLOYMENT_TYPE" == "vm" ]]; then
+    ask VM_ID             "ID de la VM"               "200"
+  else
+    ask LXC_ID             "ID du LXC"                "300"
+  fi
+  ask VM_IP             "IP statique (ex: 192.168.1.100/24)"
   ask VM_GATEWAY        "Passerelle"                "192.168.1.1"
+  ask NETWORK_VLAN      "Tag VLAN (10=Mgmt, 30=K3s)" "30"
 
-  echo
   echo -e "${YELLOW}--- SSH ---${NC}"
-  # Cherche une clé SSH existante
   local default_key=""
   for key_file in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do
     if [[ -f "$key_file" ]]; then
       default_key=$(cat "$key_file")
-      info "Clé SSH trouvée : $key_file"
       break
     fi
   done
   ask SSH_PUBLIC_KEY    "Clé SSH publique" "$default_key"
 
-  # IP sans le masque pour Ansible
   VM_IP_ONLY="${VM_IP%%/*}"
-
   save_cache
 }
 
-# ============================================================
-# Génération des fichiers de config
-# ============================================================
 generate_configs() {
-  info "Génération de terraform.tfvars..."
+  info "Génération de ${TF_BIN}.tfvars..."
   cat > "$TERRAFORM_DIR/terraform.tfvars" <<EOF
-proxmox_endpoint = "$PROXMOX_ENDPOINT"
-proxmox_username = "$PROXMOX_USER"
+proxmox_endpoint    = "$PROXMOX_ENDPOINT"
+proxmox_username    = "$PROXMOX_USER"
 proxmox_password    = "$PROXMOX_PASSWORD"
 vm_console_password = "$VM_CONSOLE_PASSWORD"
-proxmox_node     = "$PROXMOX_NODE"
+proxmox_node        = "$PROXMOX_NODE"
+deployment_type     = "$DEPLOYMENT_TYPE"
 
-vm_id      = $VM_ID
-vm_ip      = "$VM_IP"
-vm_gateway = "$VM_GATEWAY"
+vm_id               = ${VM_ID:-200}
+lxc_id              = ${LXC_ID:-300}
+vm_ip               = "$VM_IP"
+vm_gateway          = "$VM_GATEWAY"
+network_vlan        = $NETWORK_VLAN
 
 ssh_public_key      = "$SSH_PUBLIC_KEY"
 EOF
-  success "terraform.tfvars généré"
 
   info "Génération de inventory.ini..."
+  # Extraction de l'IP du PVE depuis l'URL (ex: https://192.168.1.98:8006 -> 192.168.1.98)
+  PVE_IP_ONLY=$(echo "$PROXMOX_ENDPOINT" | grep -oP '(?<=//)[^:/]+')
+
   cat > "$ANSIBLE_DIR/inventory.ini" <<EOF
+[pve]
+proxmox ansible_host=$PVE_IP_ONLY ansible_user=root ansible_ssh_pass=$PROXMOX_PASSWORD
+
 [k3s]
 k3s-control ansible_host=$VM_IP_ONLY ansible_user=ansible ansible_become=true
 EOF
-  success "inventory.ini généré"
 }
 
-# ============================================================
-# Terraform
-# ============================================================
-run_terraform() {
-  info "Initialisation Terraform..."
+run_iaas() {
+  info "Exécution de $TF_BIN..."
   cd "$TERRAFORM_DIR"
-  terraform init -upgrade
-
-  info "Plan Terraform..."
-  terraform plan
-
-  echo
-  read -rp "Appliquer le plan ? [y/N] : " confirm
-  [[ "$confirm" =~ ^[Yy]$ ]] || error "Annulé."
-
-  info "Application Terraform..."
-  terraform apply -auto-approve
-  success "VM créée"
+  "$TF_BIN" init -upgrade
+  "$TF_BIN" apply -auto-approve
 }
 
-# ============================================================
-# Attente SSH
-# ============================================================
 wait_for_ssh() {
   info "Attente de la disponibilité SSH sur $VM_IP_ONLY..."
   local retries=30
   local count=0
   until ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+        root@"$VM_IP_ONLY" 'exit' 2>/dev/null || \
         ansible@"$VM_IP_ONLY" 'exit' 2>/dev/null; do
     count=$((count + 1))
-    if [[ $count -ge $retries ]]; then
-      error "SSH non disponible après ${retries} tentatives. Vérifie la VM."
-    fi
+    [[ $count -ge $retries ]] && error "SSH non disponible."
     echo -n "."
     sleep 10
   done
   echo
-  success "SSH disponible"
 }
-
-# ============================================================
-# Ansible
-# ============================================================
 run_ansible() {
   info "Lancement du playbook Ansible..."
   cd "$ANSIBLE_DIR"
-  ansible-playbook -i inventory.ini playbook.yml
-  success "Provisionnement terminé"
+  local ssh_user="ansible"
+  ssh -o StrictHostKeyChecking=no root@"$VM_IP_ONLY" 'exit' 2>/dev/null && ssh_user="root"
+
+  # Pour l'hôte PVE, on utilise sshpass si une clé n'est pas déjà configurée
+  export ANSIBLE_HOST_KEY_CHECKING=False
+  ansible-playbook -i inventory.ini playbook.yml \
+    -e "k3s_target=$DEPLOYMENT_TYPE" \
+    -e "k3s_cni=$K3S_CNI" \
+    -e "gpu_type=$GPU_TYPE" \
+    -e "ansible_user=$ssh_user"
 }
 
-# ============================================================
-# Résumé final
-# ============================================================
-print_summary() {
-  echo
-  echo -e "${GREEN}============================================================${NC}"
-  echo -e "${GREEN}   Cluster prêt !${NC}"
-  echo -e "${GREEN}============================================================${NC}"
-  echo
-  echo -e "  VM IP         : ${CYAN}$VM_IP_ONLY${NC}"
-  echo -e "  ArgoCD        : ${CYAN}https://argocd.int.fabsys.ovh${NC}"
-  echo -e "  Kubeconfig    : ${CYAN}ssh ansible@$VM_IP_ONLY 'cat ~/.kube/config'${NC}"
-  echo
-  echo -e "${YELLOW}Prochaine étape : recréer les SealedSecrets${NC}"
-  echo -e "  → Voir deploy/README.md Étape 3"
-  echo
-}
 
-# ============================================================
-# Main
-# ============================================================
+# --- Main ---
 check_prerequisites
 collect_inputs
 generate_configs
-run_terraform
+run_iaas
 wait_for_ssh
 run_ansible
-print_summary
+echo -e "${GREEN}Cluster prêt en mode $DEPLOYMENT_TYPE avec $K3S_CNI (via $TF_BIN) !${NC}"
