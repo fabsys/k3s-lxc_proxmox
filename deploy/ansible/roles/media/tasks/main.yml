@@ -1,0 +1,398 @@
+---
+# ============================================================
+# Rôle Media Center : Kodi (GBM) + RetroArch + PS3 Bluetooth
+# Cible : LXC privilégié Debian, affichage HDMI direct
+# ============================================================
+
+- name: Mise à jour apt
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installation des paquets media (Kodi, RetroArch, Bluetooth, GPU AMD)
+  apt:
+    name:
+      # Kodi et support streaming
+      - kodi
+      - kodi-inputstream-adaptive
+      - kodi-inputstream-rtmp
+      # Intégration Kodi + libretro (cores natifs Kodi)
+      - kodi-game-libretro
+      - kodi-game-libretro-bsnes-mercury-accuracy    # SNES (précis)
+      - kodi-game-libretro-bsnes-mercury-performance # SNES (rapide)
+      # RetroArch + cores disponibles dans Debian 13
+      - retroarch
+      - retroarch-assets         # Assets Ozone/XMB/GLUI
+      - libretro-mgba          # GBA / GB / GBC
+      - libretro-nestopia       # NES
+      - libretro-bsnes-mercury-accuracy    # SNES (via RetroArch aussi)
+      - libretro-gambatte       # GB / GBC
+      - libretro-desmume        # Nintendo DS
+      - libretro-core-info      # Métadonnées des cores
+      # SQLite (activation addon Kodi en DB)
+      - sqlite3
+      # GPU AMD — VA-API pour transcodage hardware
+      - mesa-va-drivers
+      - mesa-vdpau-drivers
+      - libva-drm2
+      - vainfo
+      - libgl1-mesa-dri
+      # Audio
+      - alsa-utils
+      - pulseaudio
+      # Bluetooth (manette PS3 + télécommande BT)
+      - bluetooth
+      - bluez
+      - bluez-tools
+      - python3-dbus
+      # Manettes et input
+      - joystick
+      - evtest
+      - libinput-tools          # Détection devices input via udev
+      # Utilitaires
+      - curl
+      - wget
+      - unzip
+    state: present
+
+- name: Création de l'utilisateur kodi
+  user:
+    name: kodi
+    comment: "Kodi Media Center"
+    groups: video,audio,input,render,bluetooth,tty
+    shell: /bin/bash
+    create_home: true
+
+- name: Droits udev — accès /dev/dri et /dev/input sans sudo
+  copy:
+    dest: /etc/udev/rules.d/99-kodi.rules
+    content: |
+      # DRM / GPU AMD
+      SUBSYSTEM=="drm", GROUP="video", MODE="0660"
+      SUBSYSTEM=="dri", GROUP="render", MODE="0660"
+      # Framebuffer
+      KERNEL=="fb[0-9]*", GROUP="video", MODE="0660"
+      # Input (manettes, IR, claviers)
+      SUBSYSTEM=="input", GROUP="input", MODE="0660"
+
+- name: Configuration ALSA — sortie HDMI par défaut
+  copy:
+    dest: /etc/asound.conf
+    content: |
+      defaults.pcm.card 0
+      defaults.ctl.card 0
+
+- name: Configuration Kodi — activer HDMI-CEC et gamepad
+  file:
+    path: /home/kodi/.kodi/userdata
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: Configuration advancedsettings.xml Kodi
+  copy:
+    dest: /home/kodi/.kodi/userdata/advancedsettings.xml
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      <advancedsettings version="1.0">
+        <!-- Cache buffer : 256 Mo pour éviter les stutters réseau -->
+        <network>
+          <buffermode>1</buffermode>
+          <cachemembuffersize>268435456</cachemembuffersize>
+        </network>
+        <!-- Démarrage direct sans splash screen -->
+        <splash>false</splash>
+      </advancedsettings>
+
+- name: Configuration guisettings.xml Kodi (HDMI-CEC + gamepad activés)
+  copy:
+    dest: /home/kodi/.kodi/userdata/guisettings.xml
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      <settings version="2">
+        <setting id="input.peripherals">true</setting>
+        <setting id="locale.language">resource.language.fr_fr</setting>
+        <setting id="lookandfeel.skin">skin.estuary</setting>
+        <!-- VA-API AMD pour transcodage hardware -->
+        <setting id="videoplayer.usevaapi">true</setting>
+        <setting id="videoplayer.usevaapimpeg4">true</setting>
+        <setting id="videoplayer.usevaapihevc">true</setting>
+        <setting id="videoplayer.usevaapimpeg2">true</setting>
+      </settings>
+
+- name: Configuration RetroArch — jouabilité TV + manette PS3
+  file:
+    path: /home/kodi/.config/retroarch
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: retroarch.cfg
+  copy:
+    dest: /home/kodi/.config/retroarch/retroarch.cfg
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      # Sortie vidéo OpenGL via KMS/EGL (requis pour menu Ozone)
+      video_driver = "gl"
+      video_context_driver = "kms"
+      # Menu Ozone — moderne, supporte 1080p+
+      menu_driver = "ozone"
+      # Assets système Debian
+      assets_directory = "/usr/share/libretro/assets"
+      # Résolution plein écran TV
+      video_fullscreen = "true"
+      video_windowed_fullscreen = "false"
+      video_fullscreen_x = "0"
+      video_fullscreen_y = "0"
+      # Audio ALSA
+      audio_driver = "alsa"
+      # Vsync pour éviter le tearing
+      video_vsync = "true"
+      # Core info (extensions par core)
+      libretro_info_path = "/usr/share/libretro/info"
+      # Chemin des ROMs
+      rgui_browser_directory = "/home/kodi/roms"
+      # Chemin des saves
+      savefile_directory = "/home/kodi/saves"
+      savestate_directory = "/home/kodi/savestates"
+      # Manette : bouton Menu = F1 (ou Select+Start sur PS3)
+      input_menu_toggle_gamepad_combo = "3"
+      # Quitter RetroArch = Select+Start
+      input_quit_gamepad_combo = "4"
+
+- name: Dossiers ROMs et saves
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+  loop:
+    - /home/kodi/roms
+    - /home/kodi/roms/snes
+    - /home/kodi/roms/nes
+    - /home/kodi/roms/megadrive
+    - /home/kodi/roms/psx
+    - /home/kodi/roms/n64
+    - /home/kodi/roms/gba
+    - /home/kodi/roms/neogeo
+    - /home/kodi/saves
+    - /home/kodi/savestates
+
+- name: Symlink /root/roms vers /home/kodi/roms (RetroArch tourne en root)
+  file:
+    src: /home/kodi/roms
+    dest: /root/roms
+    state: link
+
+- name: Télécharger le core FBNeo (Neo Geo / Arcade — absent des dépôts Debian)
+  get_url:
+    url: https://buildbot.libretro.com/nightly/linux/x86_64/latest/fbneo_libretro.so.zip
+    dest: /tmp/fbneo_libretro.so.zip
+    mode: '0644'
+
+- name: Installer le core FBNeo
+  unarchive:
+    src: /tmp/fbneo_libretro.so.zip
+    dest: /usr/lib/x86_64-linux-gnu/libretro/
+    remote_src: true
+
+- name: Télécharger le core info FBNeo
+  get_url:
+    url: https://raw.githubusercontent.com/libretro/libretro-core-info/master/fbneo_libretro.info
+    dest: /usr/share/libretro/info/fbneo_libretro.info
+    mode: '0644'
+
+- name: Script de switch Kodi ↔ RetroArch
+  copy:
+    dest: /usr/local/bin/launch-retroarch
+    owner: root
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      # Déclenché par retroarch-switcher.path via fichier trigger
+      rm -f /tmp/.launch-retroarch
+      systemctl stop kodi
+      sleep 2
+      chown root:render /dev/dri/renderD128
+      HOME=/home/kodi LIBVA_DRIVER_NAME=radeonsi /usr/bin/retroarch --menu
+      systemctl start kodi
+
+- name: Service systemd — RetroArch switcher (oneshot)
+  copy:
+    dest: /etc/systemd/system/retroarch-switcher.service
+    owner: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Switch from Kodi to RetroArch
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/launch-retroarch
+
+- name: Path unit systemd — surveille le trigger RetroArch
+  copy:
+    dest: /etc/systemd/system/retroarch-switcher.path
+    owner: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Watch for RetroArch launch request
+
+      [Path]
+      PathExists=/tmp/.launch-retroarch
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Activer le path unit RetroArch switcher
+  systemd:
+    name: retroarch-switcher.path
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# --- Addon Kodi pour lancer RetroArch depuis les Favoris ---
+
+- name: Répertoire addon script.launch.retroarch
+  file:
+    path: /home/kodi/.kodi/addons/script.launch.retroarch
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: addon.xml — déclaration de l'addon RetroArch
+  copy:
+    dest: /home/kodi/.kodi/addons/script.launch.retroarch/addon.xml
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <addon id="script.launch.retroarch"
+             name="RetroArch Launcher"
+             version="1.0.0"
+             provider-name="homelab">
+        <requires>
+          <import addon="xbmc.python" version="3.0.0"/>
+        </requires>
+        <extension point="xbmc.python.script" library="default.py"/>
+        <extension point="xbmc.addon.metadata">
+          <summary lang="en">Launch RetroArch from Kodi</summary>
+          <description lang="en">Creates a trigger file and quits Kodi. A systemd path unit detects the trigger, launches RetroArch, and restarts Kodi on exit.</description>
+          <platform>linux</platform>
+        </extension>
+      </addon>
+
+- name: default.py — script Python de l'addon
+  copy:
+    dest: /home/kodi/.kodi/addons/script.launch.retroarch/default.py
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      import os
+      import xbmc
+
+      # Créer le fichier trigger — le path unit systemd fera le reste
+      open("/tmp/.launch-retroarch", "w").close()
+      # Quitter Kodi proprement
+      xbmc.executebuiltin("Quit")
+
+- name: favourites.xml — raccourci RetroArch dans les Favoris Kodi
+  copy:
+    dest: /home/kodi/.kodi/userdata/favourites.xml
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <favourites>
+        <favourite name="RetroArch">RunScript(script.launch.retroarch)</favourite>
+      </favourites>
+
+- name: Configuration Bluetooth — activation automatique + trust PS3
+  copy:
+    dest: /etc/bluetooth/main.conf
+    content: |
+      [Policy]
+      AutoEnable=true
+      [General]
+      Name=MediaCenter
+      Class=0x000100
+      DiscoverableTimeout=0
+
+- name: Service systemd — Kodi en GBM/KMS sur tty1
+  copy:
+    dest: /etc/systemd/system/kodi.service
+    owner: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Kodi Media Center (GBM/KMS)
+      After=systemd-udevd.service bluetooth.service sound.target
+      Wants=bluetooth.service
+
+      [Service]
+      Type=simple
+      User=root
+      Environment=HOME=/home/kodi
+      Environment=LIBVA_DRIVER_NAME=radeonsi
+      Environment=MESA_GL_VERSION_OVERRIDE=3.3
+      # Fix renderD128 group au démarrage
+      ExecStartPre=/bin/chown root:render /dev/dri/renderD128
+      # GBM/KMS direct — PulseAudio via audio-backend
+      ExecStart=/usr/bin/kodi --standalone --windowing=gbm --audio-backend=pulseaudio
+      StandardOutput=journal
+      StandardError=journal
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Activer et démarrer le service Kodi
+  systemd:
+    name: kodi
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Attendre la création de la DB Addons Kodi
+  wait_for:
+    path: /home/kodi/.kodi/userdata/Database/Addons33.db
+    timeout: 30
+
+- name: Activer l'addon script.launch.retroarch dans la DB Kodi
+  shell: >
+    sqlite3 /home/kodi/.kodi/userdata/Database/Addons33.db
+    "UPDATE installed SET enabled=1 WHERE addonID='script.launch.retroarch';"
+  register: addon_enable
+  changed_when: addon_enable.rc == 0
+  retries: 3
+  delay: 5
+
+- name: Activer le service Bluetooth
+  systemd:
+    name: bluetooth
+    enabled: true
+    state: started
+
+- name: "INFO — Appairage manette PS3"
+  debug:
+    msg: |
+      Pour appairer la manette PS3 :
+      1. Connecter la manette en USB une première fois
+      2. Sur le LXC : bluetoothctl → power on → agent on → scan on
+      3. La manette PS3 apparaît automatiquement après connexion USB
+      4. Une fois appairée, elle se reconnecte automatiquement via Bluetooth

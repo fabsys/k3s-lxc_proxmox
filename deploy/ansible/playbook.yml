@@ -1,13 +1,12 @@
 ---
 # --- PARTIE 1 : Configuration de l'Hôte Proxmox (PVE) ---
-# On ne configure l'hôte que pour le mode LXC (partage du noyau)
 - name: Configuration de l'hôte Proxmox (PVE)
   hosts: pve
   become: true
   tasks:
     - include_role:
         name: pve_host
-      when: k3s_target == 'lxc'
+      when: k3s_target == 'lxc' or (deploy_media | bool)
 
 # --- PARTIE 2 : Configuration du Cluster K3s ---
 - name: Bootstrap k3s homelab
@@ -19,3 +18,10 @@
     - { role: cilium, when: k3s_cni == 'cilium' }
     - { role: calico, when: k3s_cni == 'calico' }
     - argocd
+
+# --- PARTIE 3 : Media Center (Kodi + RetroArch) ---
+- name: Bootstrap Media Center
+  hosts: media
+  become: true
+  roles:
+    - media

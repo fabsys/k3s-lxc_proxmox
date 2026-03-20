@@ -3,6 +3,13 @@ set -euo pipefail
 
 # ============================================================
 # Bootstrap k3s homelab — Proxmox + Ansible (Tofu/Terraform)
+#
+# Usage:
+#   ./provision.sh            → mode interactif complet
+#   ./provision.sh --k3s      → déploie uniquement le cluster K3s
+#   ./provision.sh --media    → déploie uniquement le Media Center
+#   ./provision.sh --all      → déploie K3s + Media Center
+#   ./provision.sh --ansible  → relance uniquement Ansible (sans Tofu)
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,6 +27,53 @@ info()    { echo -e "${CYAN}[INFO]${NC} $*"; }
 success() { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
+
+# --- Parsing des arguments ---
+MODE_K3S=false
+MODE_MEDIA=false
+SKIP_TOFU=false
+
+parse_args() {
+  if [[ $# -eq 0 ]]; then
+    echo -e "${CYAN}============================================================${NC}"
+    echo -e "${CYAN}   Homelab Provisioner — Que voulez-vous déployer ?${NC}"
+    echo -e "${CYAN}============================================================${NC}"
+    echo -e "  ${GREEN}1)${NC} --k3s     Cluster K3s uniquement"
+    echo -e "  ${GREEN}2)${NC} --media   Media Center (Kodi + RetroArch) uniquement"
+    echo -e "  ${GREEN}3)${NC} --all     K3s + Media Center"
+    echo -e "  ${GREEN}4)${NC} --ansible Rejouer Ansible sans recréer l'infra"
+    echo -e "  ${GREEN}5)${NC} Quitter"
+    echo
+    read -rp "Choix [1-5] : " choice
+    case "$choice" in
+      1) MODE_K3S=true ;;
+      2) MODE_MEDIA=true ;;
+      3) MODE_K3S=true; MODE_MEDIA=true ;;
+      4) MODE_K3S=true; MODE_MEDIA=true; SKIP_TOFU=true ;;
+      5) echo "Annulé."; exit 0 ;;
+      *) error "Choix invalide. Utilisez --help pour l'aide." ;;
+    esac
+    return
+  fi
+  for arg in "$@"; do
+    case "$arg" in
+      --k3s)     MODE_K3S=true ;;
+      --media)   MODE_MEDIA=true ;;
+      --all)     MODE_K3S=true; MODE_MEDIA=true ;;
+      --ansible) MODE_K3S=true; MODE_MEDIA=true; SKIP_TOFU=true ;;
+      --help|-h)
+        echo "Usage: $0 [--k3s] [--media] [--all] [--ansible]"
+        echo "  (aucun arg)  Mode interactif complet"
+        echo "  --k3s        Déploie uniquement le cluster K3s"
+        echo "  --media      Déploie uniquement le Media Center"
+        echo "  --all        Déploie K3s + Media Center"
+        echo "  --ansible    Relance uniquement Ansible (sans Tofu)"
+        exit 0
+        ;;
+      *) error "Argument inconnu : $arg. Utilisez --help pour l'aide." ;;
+    esac
+  done
+}
 
 # Détection de l'outil IaC (OpenTofu ou Terraform)
 TF_BIN=""
@@ -76,11 +130,14 @@ PROXMOX_NODE="${PROXMOX_NODE:-}"
 DEPLOYMENT_TYPE="${DEPLOYMENT_TYPE:-}"
 K3S_CNI="${K3S_CNI:-}"
 GPU_TYPE="${GPU_TYPE:-}"
+DEPLOY_MEDIA="${DEPLOY_MEDIA:-false}"
 VM_ID="${VM_ID:-}"
 LXC_ID="${LXC_ID:-}"
 VM_IP="${VM_IP:-}"
 VM_GATEWAY="${VM_GATEWAY:-}"
 NETWORK_VLAN="${NETWORK_VLAN:-}"
+MEDIA_LXC_ID="${MEDIA_LXC_ID:-301}"
+MEDIA_LXC_IP="${MEDIA_LXC_IP:-192.168.1.101/24}"
 SSH_PUBLIC_KEY="${SSH_PUBLIC_KEY:-}"
 EOF
   chmod 600 "$CACHE_FILE"
@@ -108,11 +165,6 @@ collect_inputs() {
   echo -e "${CYAN}   Configuration du cluster k3s (Hybride VM/LXC)${NC}"
   echo -e "${CYAN}============================================================${NC}"
 
-  echo -e "${YELLOW}--- Architecture ---${NC}"
-  ask DEPLOYMENT_TYPE     "Type de déploiement (vm/lxc)" "lxc"
-  ask K3S_CNI            "CNI (cilium/calico)"          "calico"
-  ask GPU_TYPE            "Type de GPU (intel/amd)"      "amd"
-
   echo -e "${YELLOW}--- Proxmox ---${NC}"
   ask PROXMOX_ENDPOINT    "URL API Proxmox"              "https://192.168.1.10:8006"
   ask PROXMOX_USER        "Utilisateur Proxmox"          "root@pam"
@@ -124,16 +176,6 @@ collect_inputs() {
   echo -n "Mot de passe console/root (accès urgence) : "
   read -rsp "" VM_CONSOLE_PASSWORD; echo
 
-  echo -e "${YELLOW}--- Réseau ---${NC}"
-  if [[ "$DEPLOYMENT_TYPE" == "vm" ]]; then
-    ask VM_ID             "ID de la VM"               "200"
-  else
-    ask LXC_ID             "ID du LXC"                "300"
-  fi
-  ask VM_IP             "IP statique (ex: 192.168.1.100/24)"
-  ask VM_GATEWAY        "Passerelle"                "192.168.1.1"
-  ask NETWORK_VLAN      "Tag VLAN (10=Mgmt, 30=K3s)" "30"
-
   echo -e "${YELLOW}--- SSH ---${NC}"
   local default_key=""
   for key_file in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do
@@ -144,7 +186,31 @@ collect_inputs() {
   done
   ask SSH_PUBLIC_KEY    "Clé SSH publique" "$default_key"
 
+  if [[ "$MODE_K3S" == "true" ]]; then
+    echo -e "${YELLOW}--- K3s ---${NC}"
+    ask DEPLOYMENT_TYPE     "Type de déploiement (vm/lxc)" "lxc"
+    ask K3S_CNI             "CNI (cilium/calico)"          "calico"
+    ask GPU_TYPE            "Type de GPU (intel/amd)"      "amd"
+    if [[ "$DEPLOYMENT_TYPE" == "vm" ]]; then
+      ask VM_ID             "ID de la VM"                  "200"
+    else
+      ask LXC_ID            "ID du LXC k3s"               "300"
+    fi
+    ask VM_IP               "IP statique k3s (ex: 192.168.1.100/24)"
+    ask VM_GATEWAY          "Passerelle"                   "192.168.1.1"
+    ask NETWORK_VLAN        "Tag VLAN (0=aucun)"           "0"
+  fi
+
+  if [[ "$MODE_MEDIA" == "true" ]]; then
+    echo -e "${YELLOW}--- Media Center ---${NC}"
+    ask MEDIA_LXC_ID        "ID du LXC Media Center"      "301"
+    ask MEDIA_LXC_IP        "IP statique Media (ex: 192.168.1.101/24)" "192.168.1.101/24"
+    [[ -z "${VM_GATEWAY:-}" ]] && ask VM_GATEWAY "Passerelle" "192.168.1.1"
+  fi
+
+  DEPLOY_MEDIA="$MODE_MEDIA"
   VM_IP_ONLY="${VM_IP%%/*}"
+  MEDIA_LXC_IP_ONLY="${MEDIA_LXC_IP%%/*}"
   save_cache
 }
 
@@ -164,6 +230,10 @@ vm_ip               = "$VM_IP"
 vm_gateway          = "$VM_GATEWAY"
 network_vlan        = $NETWORK_VLAN
 
+deploy_media        = ${DEPLOY_MEDIA:-false}
+media_lxc_id        = ${MEDIA_LXC_ID:-301}
+media_lxc_ip        = "${MEDIA_LXC_IP:-192.168.1.101/24}"
+
 ssh_public_key      = "$SSH_PUBLIC_KEY"
 EOF
 
@@ -176,11 +246,15 @@ EOF
 proxmox ansible_host=$PVE_IP_ONLY ansible_user=root ansible_ssh_pass=$PROXMOX_PASSWORD
 
 [k3s]
-k3s-control ansible_host=$VM_IP_ONLY ansible_user=ansible ansible_become=true
+k3s-control ansible_host=${VM_IP_ONLY:-} ansible_user=$( [[ "${DEPLOYMENT_TYPE:-lxc}" == "lxc" ]] && echo "root" || echo "ansible" ) ansible_become=true
+
+[media]
+$( [[ "$DEPLOY_MEDIA" == "true" ]] && echo "media-lxc ansible_host=$MEDIA_LXC_IP_ONLY ansible_user=root" )
 EOF
 }
 
 run_iaas() {
+  [[ "$SKIP_TOFU" == "true" ]] && { info "Tofu ignoré (--ansible)"; return; }
   info "Exécution de $TF_BIN..."
   cd "$TERRAFORM_DIR"
   "$TF_BIN" init -upgrade
@@ -188,40 +262,58 @@ run_iaas() {
 }
 
 wait_for_ssh() {
-  info "Attente de la disponibilité SSH sur $VM_IP_ONLY..."
+  local ip="$1"
+  info "Attente de la disponibilité SSH sur $ip..."
   local retries=30
   local count=0
   until ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
-        root@"$VM_IP_ONLY" 'exit' 2>/dev/null || \
-        ansible@"$VM_IP_ONLY" 'exit' 2>/dev/null; do
+        root@"$ip" 'exit' 2>/dev/null || \
+        ansible@"$ip" 'exit' 2>/dev/null; do
     count=$((count + 1))
-    [[ $count -ge $retries ]] && error "SSH non disponible."
+    [[ $count -ge $retries ]] && error "SSH non disponible sur $ip."
     echo -n "."
     sleep 10
   done
   echo
 }
+
 run_ansible() {
   info "Lancement du playbook Ansible..."
   cd "$ANSIBLE_DIR"
-  local ssh_user="ansible"
-  ssh -o StrictHostKeyChecking=no root@"$VM_IP_ONLY" 'exit' 2>/dev/null && ssh_user="root"
-
-  # Pour l'hôte PVE, on utilise sshpass si une clé n'est pas déjà configurée
   export ANSIBLE_HOST_KEY_CHECKING=False
+
+  # Construire les --limit selon le mode
+  local limit_hosts=""
+  if [[ "$MODE_K3S" == "true" && "$MODE_MEDIA" == "true" ]]; then
+    limit_hosts="all"
+  elif [[ "$MODE_K3S" == "true" ]]; then
+    limit_hosts="pve:k3s"
+  elif [[ "$MODE_MEDIA" == "true" ]]; then
+    limit_hosts="pve:media"
+  fi
+
   ansible-playbook -i inventory.ini playbook.yml \
-    -e "k3s_target=$DEPLOYMENT_TYPE" \
-    -e "k3s_cni=$K3S_CNI" \
-    -e "gpu_type=$GPU_TYPE" \
-    -e "ansible_user=$ssh_user"
+    --limit "$limit_hosts" \
+    -e "k3s_target=${DEPLOYMENT_TYPE:-lxc}" \
+    -e "k3s_cni=${K3S_CNI:-calico}" \
+    -e "gpu_type=${GPU_TYPE:-amd}" \
+    -e "deploy_media=$DEPLOY_MEDIA" \
+    -e "media_lxc_id=${MEDIA_LXC_ID:-301}"
 }
 
 
 # --- Main ---
+parse_args "$@"
 check_prerequisites
 collect_inputs
 generate_configs
 run_iaas
-wait_for_ssh
+
+[[ "$MODE_K3S"    == "true" ]] && wait_for_ssh "${VM_IP_ONLY:-}"
+[[ "$MODE_MEDIA"  == "true" ]] && wait_for_ssh "${MEDIA_LXC_IP_ONLY:-}"
+
 run_ansible
-echo -e "${GREEN}Cluster prêt en mode $DEPLOYMENT_TYPE avec $K3S_CNI (via $TF_BIN) !${NC}"
+
+echo -e "${GREEN}Déploiement terminé !${NC}"
+[[ "$MODE_K3S"   == "true" ]] && echo -e "  K3s    → ${CYAN}${VM_IP_ONLY:-}${NC} (mode ${DEPLOYMENT_TYPE:-lxc}, CNI: ${K3S_CNI:-calico})"
+[[ "$MODE_MEDIA" == "true" ]] && echo -e "  Media  → ${CYAN}${MEDIA_LXC_IP_ONLY:-}${NC} (Kodi + RetroArch)"

@@ -4,6 +4,11 @@ k3s_target: "vm" # vm ou lxc
 # Utilisateur système selon le mode de déploiement
 k3s_user: "{{ 'root' if k3s_target == 'lxc' else 'ansible' }}"
 k3s_home: "{{ '/root' if k3s_target == 'lxc' else '/home/ansible' }}"
+
+# Media Center
+deploy_media: false
+media_lxc_id: 301
+media_lxc_ip: "192.168.1.101"
 k3s_cni: "cilium" # cilium ou calico
 gpu_type: "amd" # intel ou amd
 

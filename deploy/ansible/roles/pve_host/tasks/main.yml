@@ -22,3 +22,81 @@
   command: modprobe br_netfilter
   when: pve_modules.changed
   ignore_errors: true # Au cas où il serait déjà built-in
+
+# --- Passthrough GPU + Input pour le LXC Media Center ---
+
+- name: Passthrough GPU/Input — droits cgroup2 pour le LXC media
+  lineinfile:
+    path: /etc/pve/lxc/{{ media_lxc_id }}.conf
+    line: "{{ item }}"
+    create: false
+  loop:
+    # AMD GPU (DRM/KMS) — major 226
+    - "lxc.cgroup2.devices.allow: c 226:* rwm"
+    # Framebuffer /dev/fb0 — major 29
+    - "lxc.cgroup2.devices.allow: c 29:0 rwm"
+    # Input devices (clavier, manettes, IR) — major 13
+    - "lxc.cgroup2.devices.allow: c 13:* rwm"
+    # ALSA audio — major 116
+    - "lxc.cgroup2.devices.allow: c 116:* rwm"
+    # /dev/tty* — major 4
+    - "lxc.cgroup2.devices.allow: c 4:* rwm"
+    # /dev/tty0 — nécessaire pour GBM/KMS (prise de contrôle display)
+    - "lxc.cgroup2.devices.allow: c 4:0 rwm"
+    # Bind mounts
+    - "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+    - "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file"
+    - "lxc.mount.entry: /dev/tty0 dev/tty0 none bind,optional,create=file"
+    - "lxc.mount.entry: /dev/input dev/input none bind,optional,create=dir"
+    # /sys rw — requis pour systemd-udevd (libinput → clavier/souris/manette)
+    - "lxc.mount.auto: proc:rw sys:rw"
+  when: deploy_media | bool
+  register: media_lxc_config
+
+# Unbind fbcon du GPU AMD pour que le LXC puisse prendre le DRM master
+- name: Udev rule — renderD128 group=render (persistant)
+  copy:
+    dest: /etc/udev/rules.d/99-amdgpu-render.rules
+    content: |
+      KERNEL=="renderD128", GROUP="render", MODE="0660"
+  when: deploy_media | bool
+
+- name: Service systemd — unbind fbcon AMD au boot (libère DRM pour Kodi LXC)
+  copy:
+    dest: /etc/systemd/system/unbind-fbcon.service
+    content: |
+      [Unit]
+      Description=Unbind fbcon from AMD GPU (free DRM master for Kodi LXC)
+      After=systemd-udev-settle.service
+      Before=pve-guests.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/sh -c 'echo 0 > /sys/class/vtconsole/vtcon1/bind'
+      ExecStop=/bin/sh -c 'echo 1 > /sys/class/vtconsole/vtcon1/bind'
+
+      [Install]
+      WantedBy=multi-user.target
+  when: deploy_media | bool
+
+- name: Activer unbind-fbcon au démarrage PVE
+  systemd:
+    name: unbind-fbcon
+    enabled: true
+    daemon_reload: true
+  when: deploy_media | bool
+
+- name: Ajouter /dev/snd au passthrough LXC media
+  lineinfile:
+    path: /etc/pve/lxc/{{ media_lxc_id }}.conf
+    line: "lxc.mount.entry: /dev/snd dev/snd none bind,optional,create=dir"
+    create: false
+  when: deploy_media | bool
+
+- name: Redémarrage du LXC media (si config passthrough modifiée)
+  command: pct reboot {{ media_lxc_id }}
+  when:
+    - deploy_media | bool
+    - media_lxc_config.changed
+  ignore_errors: true

@@ -147,3 +147,56 @@ resource "proxmox_virtual_environment_container" "k3s_lxc" {
     size         = 30
   }
 }
+
+# --- MODE LXC MEDIA CENTER ---
+
+resource "proxmox_virtual_environment_container" "media_lxc" {
+  count        = var.deploy_media ? 1 : 0
+  node_name    = var.proxmox_node
+  vm_id        = var.media_lxc_id
+  description  = "Media Center LXC — Kodi + RetroArch + Retrogaming"
+  unprivileged = false
+  started      = true
+
+  initialization {
+    hostname = "media-lxc"
+    ip_config {
+      ipv4 {
+        address = var.media_lxc_ip
+        gateway = var.vm_gateway
+      }
+    }
+    user_account {
+      keys     = [var.ssh_public_key]
+      password = var.vm_console_password
+    }
+  }
+
+  operating_system {
+    template_file_id = proxmox_virtual_environment_download_file.debian12_lxc[0].id
+    type             = "debian"
+  }
+
+  features {
+    nesting = true
+  }
+
+  network_interface {
+    name    = "eth0"
+    bridge  = "vmbr0"
+    vlan_id = var.network_vlan > 0 ? var.network_vlan : null
+  }
+
+  memory {
+    dedicated = 4096
+  }
+
+  cpu {
+    cores = 3
+  }
+
+  disk {
+    datastore_id = "local-lvm"
+    size         = 30
+  }
+}

@@ -67,3 +67,23 @@ variable "network_vlan" {
   default     = 0
 }
 
+# --- Media Center ---
+
+variable "deploy_media" {
+  description = "Déployer le LXC Media Center (Kodi + RetroArch)"
+  type        = bool
+  default     = false
+}
+
+variable "media_lxc_id" {
+  description = "ID du conteneur LXC Media Center"
+  type        = number
+  default     = 301
+}
+
+variable "media_lxc_ip" {
+  description = "IP statique du LXC Media Center (ex: 192.168.1.101/24)"
+  type        = string
+  default     = "192.168.1.101/24"
+}
+
