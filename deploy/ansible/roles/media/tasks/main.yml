@@ -164,7 +164,7 @@
         <splash>false</splash>
       </advancedsettings>
 
-- name: Configuration guisettings.xml Kodi (HDMI-CEC + gamepad activés)
+- name: Configuration guisettings.xml Kodi (HDMI-CEC + gamepad + screensaver)
   copy:
     dest: /home/kodi/.kodi/userdata/guisettings.xml
     owner: kodi
@@ -180,6 +180,12 @@
         <setting id="videoplayer.usevaapimpeg4">true</setting>
         <setting id="videoplayer.usevaapihevc">true</setting>
         <setting id="videoplayer.usevaapimpeg2">true</setting>
+        <!-- Screensaver écran noir après 5 min d'inactivité -->
+        <setting id="screensaver.mode">screensaver.xbmc.builtin.black</setting>
+        <setting id="screensaver.time">5</setting>
+        <setting id="screensaver.disableforaudio">true</setting>
+        <!-- Audio jack par défaut -->
+        <setting id="audiooutput.audiodevice">ALSA:plughw:CARD=Generic_1,DEV=0</setting>
       </settings>
 
 - name: Configuration RetroArch — jouabilité TV + manette PS3
