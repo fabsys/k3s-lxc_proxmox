@@ -128,6 +128,33 @@
     group: kodi
     mode: '0700'
 
+- name: Bootstrap Steam (premier lancement — télécharge ~2Go de runtime)
+  become: true
+  become_user: kodi
+  shell: |
+    export HOME=/home/kodi
+    export XDG_RUNTIME_DIR=/run/user/1000
+    export LANG=en_US.UTF-8
+    dbus-launch /usr/games/steam -textclient +quit
+  args:
+    creates: /home/kodi/.steam/debian-installation/ubuntu12_32/steam
+  timeout: 600
+  register: steam_bootstrap
+  failed_when: false
+
+- name: Corriger les droits Steam après bootstrap
+  file:
+    path: "{{ item }}"
+    owner: kodi
+    group: kodi
+    recurse: true
+    state: directory
+  loop:
+    - /home/kodi/.steam
+    - /home/kodi/.local
+  when: steam_bootstrap is changed
+  failed_when: false
+
 - name: Droits udev — accès /dev/dri et /dev/input sans sudo
   copy:
     dest: /etc/udev/rules.d/99-kodi.rules
