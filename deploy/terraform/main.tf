@@ -198,11 +198,11 @@ resource "proxmox_virtual_environment_container" "media_lxc" {
   }
 
   memory {
-    dedicated = 4096
+    dedicated = 8192
   }
 
   cpu {
-    cores = 3
+    cores = 12
   }
 
   disk {

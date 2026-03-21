@@ -164,9 +164,46 @@
     mode: '0755'
   when: deploy_media | bool
 
+# --- Stockage secondaire (SSD NVMe pour les jeux) ---
+
+- name: Créer le point de montage /mnt/games
+  file:
+    path: /mnt/games
+    state: directory
+  when: deploy_media | bool
+
+- name: Monter le SSD jeux (/dev/nvme0n1p1) via fstab
+  mount:
+    path: /mnt/games
+    src: /dev/nvme0n1p1
+    fstype: ext4
+    opts: defaults,noatime
+    passno: "2"
+    state: mounted
+  when: deploy_media | bool
+
+- name: Créer les sous-dossiers steam et non-steam
+  file:
+    path: "/mnt/games/{{ item }}"
+    state: directory
+    owner: "{{ 100000 + 1000 }}"
+    group: "{{ 100000 + 1000 }}"
+  loop:
+    - steam
+    - non-steam
+  when: deploy_media | bool
+
+- name: Bind-mount SSD jeux dans le LXC media
+  lineinfile:
+    path: /etc/pve/lxc/{{ media_lxc_id }}.conf
+    line: "mp0: /mnt/games,mp=/home/kodi/games"
+    create: false
+  when: deploy_media | bool
+  register: media_games_mount
+
 - name: Redémarrage du LXC media (si config passthrough modifiée)
   command: pct reboot {{ media_lxc_id }}
   when:
     - deploy_media | bool
-    - media_lxc_config.changed
+    - media_lxc_config.changed or (media_games_mount is defined and media_games_mount.changed)
   ignore_errors: true

@@ -459,6 +459,40 @@
       systemctl restart steam-switcher.path retroarch-switcher.path 2>/dev/null
       echo "Kodi relancé."
 
+- name: Générer la clé SSH pour fix-kodi (LXC → PVE restart fallback)
+  openssh_keypair:
+    path: /root/.ssh/id_rsa
+    type: rsa
+    size: 4096
+    owner: root
+    mode: '0600'
+  register: media_ssh_key
+
+- name: Enregistrer la clé publique pour la copier sur PVE
+  set_fact:
+    media_lxc_pubkey: "{{ media_ssh_key.public_key }}"
+  when: media_ssh_key.public_key is defined
+
+- name: Autoriser la clé SSH du LXC media sur PVE (fix-kodi restart fallback)
+  authorized_key:
+    user: root
+    key: "{{ media_ssh_key.public_key }}"
+    comment: "media-lxc-fix-kodi"
+  delegate_to: "{{ groups['pve'][0] }}"
+  when: media_ssh_key.public_key is defined
+
+- name: Variables d'environnement Proton pour l'utilisateur kodi
+  blockinfile:
+    path: /home/kodi/.profile
+    block: |
+      export PROTON_USE_XALIA=0
+      export WINE_FULLSCREEN_FSR=1
+      export WINE_FULLSCREEN_FSR_STRENGTH=2
+    marker: "# {mark} MANAGED BY ANSIBLE — Proton env vars"
+    create: true
+    owner: kodi
+    group: kodi
+
 - name: Script de switch Kodi ↔ RetroArch
   copy:
     dest: /usr/local/bin/launch-retroarch
@@ -547,6 +581,31 @@
         <desktops><number>1</number></desktops>
       </openbox_config>
 
+- name: Xorg config — 1080p forcé pour Steam (évite mode 4K@30Hz sur TV)
+  copy:
+    dest: /etc/X11/xorg-steam.conf
+    owner: root
+    mode: '0644'
+    content: |
+      Section "Device"
+        Identifier "AMD"
+        Driver "amdgpu"
+      EndSection
+      Section "Monitor"
+        Identifier "HDMI"
+        Option "PreferredMode" "1920x1080"
+      EndSection
+      Section "Screen"
+        Identifier "Screen0"
+        Device "AMD"
+        Monitor "HDMI"
+        DefaultDepth 24
+        SubSection "Display"
+          Depth 24
+          Modes "1920x1080"
+        EndSubSection
+      EndSection
+
 - name: Script de switch Kodi ↔ Steam
   copy:
     dest: /usr/local/bin/launch-steam
@@ -573,7 +632,8 @@
         sleep 2
       done) &
       INPUT_FIX_PID=$!
-      Xorg :0 -sharevts -novtswitch -keeptty -nolisten tcp 2>/dev/null &
+      # Xorg en 1080p via config dédiée (évite 4K@30Hz sur TV)
+      Xorg :0 -config /etc/X11/xorg-steam.conf -sharevts -novtswitch -keeptty -nolisten tcp 2>/dev/null &
       XPID=$!
       sleep 3
       DISPLAY=:0 xhost + >/dev/null 2>&1
@@ -586,7 +646,7 @@
         export DISPLAY=:0
         export XDG_RUNTIME_DIR=/run/user/1000
         export LANG=en_US.UTF-8
-        export PROTON_ENABLE_XALIA=0
+        export PROTON_USE_XALIA=0
         export WINE_FULLSCREEN_FSR=1
         export WINE_FULLSCREEN_FSR_STRENGTH=2
         dbus-launch /usr/games/steam -bigpicture -nominidumps -nocrashmonitor -fulldesktopres
