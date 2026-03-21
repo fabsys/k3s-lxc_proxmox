@@ -157,6 +157,30 @@
   when: steam_bootstrap is changed
   failed_when: false
 
+- name: Créer les dossiers steamapps sur le SSD
+  file:
+    path: "/mnt/data/games/steam/steamapps/{{ item }}"
+    state: directory
+    owner: kodi
+    group: kodi
+  loop:
+    - common
+    - compatdata
+    - shadercache
+
+- name: Rediriger steamapps vers le SSD (symlinks)
+  file:
+    src: "/mnt/data/games/steam/steamapps/{{ item }}"
+    dest: "/home/kodi/.steam/debian-installation/steamapps/{{ item }}"
+    state: link
+    owner: kodi
+    group: kodi
+    force: true
+  loop:
+    - common
+    - compatdata
+    - shadercache
+
 - name: Droits udev — accès /dev/dri et /dev/input sans sudo
   copy:
     dest: /etc/udev/rules.d/99-kodi.rules
