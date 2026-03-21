@@ -424,15 +424,21 @@
       #!/bin/bash
       # Kill tout ce qui bloque le display et relance Kodi
       systemctl stop kodi 2>/dev/null
-      # Force kill — libère le DRM master détenu par Xorg
       pgrep -f "steam|Xorg|openbox|wineserver|proton|wine" | sort -rn | xargs -r -n1 -I{} /bin/kill -9 {} 2>/dev/null
       sleep 2
       pgrep -f "steam|Xorg|openbox|wineserver|proton|wine" | sort -rn | xargs -r -n1 -I{} /bin/kill -9 {} 2>/dev/null
       su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --kill' 2>/dev/null
       sleep 2
+      # Test si le DRM est libre ; si non, restart LXC via PVE host
+      if ! timeout 2 cat /dev/dri/card0 >/dev/null 2>&1; then
+        echo "DRM bloque — restart LXC via PVE..."
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@192.168.1.98 \
+          'pct stop 301 && sleep 3 && pct start 301' &
+        exit 0
+      fi
       systemctl start kodi
       systemctl restart steam-switcher.path retroarch-switcher.path
-      echo "Kodi relancé."
+      echo "Kodi relance."
 
 - name: Script de switch Kodi ↔ RetroArch
   copy:
@@ -553,6 +559,8 @@
       sleep 3
       DISPLAY=:0 xhost + >/dev/null 2>&1
       DISPLAY=:0 setxkbmap fr
+      # Forcer 1080p pour réduire la charge GPU (évite le lag en 4K)
+      DISPLAY=:0 xrandr --output "$(DISPLAY=:0 xrandr | grep ' connected' | head -1 | awk '{print $1}')" --mode 1920x1080 2>/dev/null || true
       # Openbox force le plein écran sur Steam Big Picture
       DISPLAY=:0 openbox --config-file /home/kodi/.config/openbox/rc.xml &
       OBPID=$!
