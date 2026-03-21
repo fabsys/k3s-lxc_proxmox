@@ -167,19 +167,19 @@
     - common
     - compatdata
     - shadercache
+    - downloading
+    - temp
+    - sourcemods
+    - workshop
 
-- name: Rediriger steamapps vers le SSD (symlinks)
+- name: Rediriger debian-installation entier vers le SSD (symlink)
   file:
-    src: "/mnt/data/games/steam/steamapps/{{ item }}"
-    dest: "/home/kodi/.steam/debian-installation/steamapps/{{ item }}"
+    src: /mnt/data/games/steam/debian-installation
+    dest: /home/kodi/.steam/debian-installation
     state: link
     owner: kodi
     group: kodi
     force: true
-  loop:
-    - common
-    - compatdata
-    - shadercache
 
 - name: Droits udev — accès /dev/dri et /dev/input sans sudo
   copy:
