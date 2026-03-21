@@ -164,10 +164,13 @@
       SUBSYSTEM=="dri", GROUP="render", MODE="0660"
       # Framebuffer
       KERNEL=="fb[0-9]*", GROUP="video", MODE="0660"
-      # Input (manettes, IR, claviers)
+      # Input générique
       SUBSYSTEM=="input", GROUP="input", MODE="0660"
       # uinput (Steam crée des gamepads virtuels pour Proton)
       KERNEL=="uinput", GROUP="input", MODE="0660"
+      # Forcer group=input sur tous event/js (override assignements systemd/uhid BT)
+      KERNEL=="event[0-9]*", GROUP="input", MODE="0660"
+      KERNEL=="js[0-9]*", GROUP="input", MODE="0660"
 
 - name: Configuration ALSA — sortie jack par défaut
   copy:
