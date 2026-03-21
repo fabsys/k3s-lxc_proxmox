@@ -78,6 +78,10 @@
       - xserver-xorg-video-amdgpu
       - xinit
       - x11-xserver-utils
+      # Openbox — WM léger pour forcer Steam en plein écran
+      - openbox
+      # xdotool — manipulation fenêtres X
+      - xdotool
       # D-Bus — requis par Steam runtime launcher service
       - dbus-x11
       # Seat management (requis pour Xorg en LXC sans logind)
@@ -437,10 +441,37 @@
 
 # --- Script de switch Kodi ↔ Steam Big Picture ---
 
-- name: Installation de xdotool (fullscreen auto Steam)
-  apt:
-    name: xdotool
-    state: present
+- name: Configuration Openbox — Steam en plein écran sans décoration
+  file:
+    path: /home/kodi/.config/openbox
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: rc.xml Openbox — fullscreen Steam Big Picture
+  copy:
+    dest: /home/kodi/.config/openbox/rc.xml
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <openbox_config xmlns="http://openbox.org/3.4/rc">
+        <applications>
+          <application class="steam" type="normal">
+            <maximized>true</maximized>
+            <decor>no</decor>
+          </application>
+          <application class="steamwebhelper" name="Steam Big Picture Mode">
+            <maximized>true</maximized>
+            <decor>no</decor>
+            <fullscreen>yes</fullscreen>
+          </application>
+        </applications>
+        <theme><titleLayout></titleLayout></theme>
+        <desktops><number>1</number></desktops>
+      </openbox_config>
 
 - name: Script de switch Kodi ↔ Steam
   copy:
@@ -455,36 +486,24 @@
       chown root:render /dev/dri/renderD128
       chmod 660 /dev/uinput
       chgrp input /dev/uinput
-      # Xorg pour Steam (cage/Wayland incompatible avec le re-exec Steam)
       Xorg :0 -sharevts -novtswitch -keeptty -nolisten tcp 2>/dev/null &
       XPID=$!
       sleep 3
       DISPLAY=:0 xhost + >/dev/null 2>&1
       DISPLAY=:0 setxkbmap fr
-      # Lancer Steam en tant que kodi avec environnement complet
+      # Openbox force le plein écran sur Steam Big Picture
+      DISPLAY=:0 openbox --config-file /home/kodi/.config/openbox/rc.xml &
+      OBPID=$!
+      sleep 1
       su -l kodi -c '
         export DISPLAY=:0
         export XDG_RUNTIME_DIR=/run/user/1000
         export LANG=en_US.UTF-8
-        dbus-launch /usr/games/steam -bigpicture -nominidumps -nocrashmonitor
-      ' &
-      STEAM_PID=$!
-      # Attendre la fenêtre Steam Big Picture puis plein écran auto
-      for i in $(seq 1 30); do
-        WID=$(DISPLAY=:0 xdotool search --class steam --name "Steam Big Picture" 2>/dev/null | head -1)
-        if [ -n "$WID" ]; then
-          sleep 2
-          DISPLAY=:0 xdotool windowmove "$WID" 0 0
-          SCREEN_SIZE=$(DISPLAY=:0 xdotool getdisplaygeometry)
-          DISPLAY=:0 xdotool windowsize "$WID" $SCREEN_SIZE
-          DISPLAY=:0 xdotool windowfocus "$WID"
-          break
-        fi
-        sleep 1
-      done
-      wait $STEAM_PID
-      # Nettoyage après fermeture de Steam
+        dbus-launch /usr/games/steam -bigpicture -nominidumps -nocrashmonitor -fulldesktopres
+      '
+      kill $OBPID 2>/dev/null
       kill $XPID 2>/dev/null
+      wait $OBPID 2>/dev/null
       wait $XPID 2>/dev/null
       systemctl restart steam-switcher.path
       systemctl start kodi
