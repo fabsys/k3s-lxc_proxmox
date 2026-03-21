@@ -164,17 +164,17 @@
     mode: '0755'
   when: deploy_media | bool
 
-# --- Stockage secondaire (SSD NVMe pour les jeux) ---
+# --- Stockage secondaire (SSD NVMe — données partagées) ---
 
-- name: Créer le point de montage /mnt/games
+- name: Créer le point de montage /mnt/data
   file:
-    path: /mnt/games
+    path: /mnt/data
     state: directory
   when: deploy_media | bool
 
-- name: Monter le SSD jeux (/dev/nvme0n1p1) via fstab
+- name: Monter le SSD données (/dev/nvme0n1p1) via fstab
   mount:
-    path: /mnt/games
+    path: /mnt/data
     src: /dev/nvme0n1p1
     fstype: ext4
     opts: defaults,noatime
@@ -182,21 +182,35 @@
     state: mounted
   when: deploy_media | bool
 
-- name: Créer les sous-dossiers steam et non-steam
+- name: Créer l'arborescence de données sur le SSD
   file:
-    path: "/mnt/games/{{ item }}"
+    path: "/mnt/data/{{ item }}"
+    state: directory
+  loop:
+    - games/steam
+    - games/non-steam
+    - movies
+    - paperless
+    - nextcloud
+    - backup
+  when: deploy_media | bool
+
+- name: Ownership des dossiers media (kodi user namespace)
+  file:
+    path: "/mnt/data/{{ item }}"
     state: directory
     owner: "{{ 100000 + 1000 }}"
     group: "{{ 100000 + 1000 }}"
+    recurse: true
   loop:
-    - steam
-    - non-steam
+    - games
+    - movies
   when: deploy_media | bool
 
-- name: Bind-mount SSD jeux dans le LXC media
+- name: Bind-mount SSD données dans le LXC media
   lineinfile:
     path: /etc/pve/lxc/{{ media_lxc_id }}.conf
-    line: "mp0: /mnt/games,mp=/home/kodi/games"
+    line: "mp0: /mnt/data,mp=/mnt/data"
     create: false
   when: deploy_media | bool
   register: media_games_mount
