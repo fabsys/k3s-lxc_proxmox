@@ -453,6 +453,8 @@
       systemctl stop kodi
       sleep 2
       chown root:render /dev/dri/renderD128
+      chmod 660 /dev/uinput
+      chgrp input /dev/uinput
       # Xorg pour Steam (cage/Wayland incompatible avec le re-exec Steam)
       Xorg :0 -sharevts -novtswitch -keeptty -nolisten tcp 2>/dev/null &
       XPID=$!
@@ -472,12 +474,10 @@
         WID=$(DISPLAY=:0 xdotool search --class steam --name "Steam Big Picture" 2>/dev/null | head -1)
         if [ -n "$WID" ]; then
           sleep 2
-          DISPLAY=:0 xdotool windowmove $WID 0 0
-          RES=$(DISPLAY=:0 xrandr | grep '\*' | awk '{print $1}')
-          W=$(echo $RES | cut -dx -f1)
-          H=$(echo $RES | cut -dx -f2)
-          DISPLAY=:0 xdotool windowsize $WID $W $H
-          DISPLAY=:0 xdotool windowfocus $WID
+          DISPLAY=:0 xdotool windowmove "$WID" 0 0
+          SCREEN_SIZE=$(DISPLAY=:0 xdotool getdisplaygeometry)
+          DISPLAY=:0 xdotool windowsize "$WID" $SCREEN_SIZE
+          DISPLAY=:0 xdotool windowfocus "$WID"
           break
         fi
         sleep 1
