@@ -385,6 +385,24 @@
 
 # --- Script de switch Kodi ↔ RetroArch ---
 
+- name: Script de recovery fix-kodi
+  copy:
+    dest: /usr/local/bin/fix-kodi
+    owner: root
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      # Tue tout ce qui bloque le display et relance Kodi
+      for pid in $(pgrep -f "steam|Xorg|openbox" | sort -rn); do
+        kill "$pid" 2>/dev/null
+      done
+      sleep 2
+      systemctl stop kodi 2>/dev/null
+      sleep 1
+      systemctl start kodi
+      systemctl restart steam-switcher.path retroarch-switcher.path
+      echo "Kodi relancé."
+
 - name: Script de switch Kodi ↔ RetroArch
   copy:
     dest: /usr/local/bin/launch-retroarch
