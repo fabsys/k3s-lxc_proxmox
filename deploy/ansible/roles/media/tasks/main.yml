@@ -422,13 +422,14 @@
     mode: '0755'
     content: |
       #!/bin/bash
-      # Tue tout ce qui bloque le display et relance Kodi
-      for pid in $(pgrep -f "steam|Xorg|openbox" | sort -rn); do
-        kill "$pid" 2>/dev/null
-      done
-      sleep 2
+      # Kill tout ce qui bloque le display et relance Kodi
       systemctl stop kodi 2>/dev/null
-      sleep 1
+      # Force kill — libère le DRM master détenu par Xorg
+      pgrep -f "steam|Xorg|openbox|wineserver|proton|wine" | sort -rn | xargs -r -n1 -I{} /bin/kill -9 {} 2>/dev/null
+      sleep 2
+      pgrep -f "steam|Xorg|openbox|wineserver|proton|wine" | sort -rn | xargs -r -n1 -I{} /bin/kill -9 {} 2>/dev/null
+      su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --kill' 2>/dev/null
+      sleep 2
       systemctl start kodi
       systemctl restart steam-switcher.path retroarch-switcher.path
       echo "Kodi relancé."
@@ -534,6 +535,19 @@
       chown root:render /dev/dri/renderD128
       chmod 660 /dev/uinput
       chgrp input /dev/uinput
+      # PulseAudio pour l'audio Steam (sortie HDMI)
+      mkdir -p /run/user/1000/pulse
+      chown kodi:kodi /run/user/1000 /run/user/1000/pulse
+      su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --start --exit-idle-time=-1'
+      sleep 1
+      su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pactl set-default-sink alsa_output.pci-0000_66_00.1.hdmi-stereo'
+      # Background: fix permissions sur devices input créés par Steam via uinput
+      (while true; do
+        chgrp input /dev/input/event* /dev/input/js* 2>/dev/null
+        chmod 0660 /dev/input/event* /dev/input/js* 2>/dev/null
+        sleep 2
+      done) &
+      INPUT_FIX_PID=$!
       Xorg :0 -sharevts -novtswitch -keeptty -nolisten tcp 2>/dev/null &
       XPID=$!
       sleep 3
@@ -549,10 +563,13 @@
         export LANG=en_US.UTF-8
         dbus-launch /usr/games/steam -bigpicture -nominidumps -nocrashmonitor -fulldesktopres
       '
+      kill $INPUT_FIX_PID 2>/dev/null
       kill $OBPID 2>/dev/null
       kill $XPID 2>/dev/null
+      wait $INPUT_FIX_PID 2>/dev/null
       wait $OBPID 2>/dev/null
       wait $XPID 2>/dev/null
+      su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --kill' 2>/dev/null
       systemctl restart steam-switcher.path
       systemctl start kodi
 
