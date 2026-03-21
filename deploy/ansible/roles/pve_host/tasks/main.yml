@@ -80,7 +80,7 @@
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      ExecStart=/bin/sh -c 'echo 0 > /sys/class/vtconsole/vtcon1/bind'
+      ExecStart=/bin/sh -c 'for i in $(seq 1 10); do [ -w /sys/class/vtconsole/vtcon1/bind ] && break || sleep 1; done; echo 0 > /sys/class/vtconsole/vtcon1/bind'
       ExecStop=/bin/sh -c 'echo 1 > /sys/class/vtconsole/vtcon1/bind'
 
       [Install]
