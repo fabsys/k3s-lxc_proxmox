@@ -97,6 +97,8 @@
       - unzip
       - xdg-user-dirs
       - locales
+      # DRM tools (modetest pour reset du mode après Xorg)
+      - libdrm-tests
     state: present
 
 - name: Création de l'utilisateur kodi
@@ -415,6 +417,19 @@
 
 # --- Script de switch Kodi ↔ RetroArch ---
 
+- name: Helper script — force-stop-all (tue les processus Steam/Xorg/Wine)
+  copy:
+    dest: /usr/local/bin/force-stop-all
+    owner: root
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      for proc in steam Xorg openbox wineserver proton wine pulseaudio; do
+        for pid in $(pgrep -f "$proc"); do
+          /bin/kill -9 "$pid" 2>/dev/null
+        done
+      done
+
 - name: Script de recovery fix-kodi
   copy:
     dest: /usr/local/bin/fix-kodi
@@ -422,23 +437,27 @@
     mode: '0755'
     content: |
       #!/bin/bash
-      # Kill tout ce qui bloque le display et relance Kodi
       systemctl stop kodi 2>/dev/null
-      pgrep -f "steam|Xorg|openbox|wineserver|proton|wine" | sort -rn | xargs -r -n1 -I{} /bin/kill -9 {} 2>/dev/null
+      /usr/local/bin/force-stop-all
       sleep 2
-      pgrep -f "steam|Xorg|openbox|wineserver|proton|wine" | sort -rn | xargs -r -n1 -I{} /bin/kill -9 {} 2>/dev/null
-      su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --kill' 2>/dev/null
-      sleep 2
-      # Test si le DRM est libre ; si non, restart LXC via PVE host
-      if ! timeout 2 cat /dev/dri/card0 >/dev/null 2>&1; then
-        echo "DRM bloque — restart LXC via PVE..."
+      /usr/local/bin/force-stop-all
+      sleep 1
+      # Reset DRM mode natif après fermeture de Xorg
+      modetest -w 94:DPMS:0 2>/dev/null || true
+      sleep 1
+      systemctl start kodi
+      sleep 3
+      # Fallback : si Kodi en mode dégradé, restart LXC via PVE
+      LAST_LINE=$(grep "GUI format" /home/kodi/.kodi/temp/kodi.log 2>/dev/null | tail -1)
+      if echo "$LAST_LINE" | grep -q "1280x720"; then
+        echo "DRM mode dégradé — redémarrage du LXC..."
+        systemctl stop kodi 2>/dev/null
         ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@192.168.1.98 \
           'pct stop 301 && sleep 3 && pct start 301' &
         exit 0
       fi
-      systemctl start kodi
-      systemctl restart steam-switcher.path retroarch-switcher.path
-      echo "Kodi relance."
+      systemctl restart steam-switcher.path retroarch-switcher.path 2>/dev/null
+      echo "Kodi relancé."
 
 - name: Script de switch Kodi ↔ RetroArch
   copy:
@@ -559,8 +578,6 @@
       sleep 3
       DISPLAY=:0 xhost + >/dev/null 2>&1
       DISPLAY=:0 setxkbmap fr
-      # Forcer 1080p pour réduire la charge GPU (évite le lag en 4K)
-      DISPLAY=:0 xrandr --output "$(DISPLAY=:0 xrandr | grep ' connected' | head -1 | awk '{print $1}')" --mode 1920x1080 2>/dev/null || true
       # Openbox force le plein écran sur Steam Big Picture
       DISPLAY=:0 openbox --config-file /home/kodi/.config/openbox/rc.xml &
       OBPID=$!
@@ -569,6 +586,9 @@
         export DISPLAY=:0
         export XDG_RUNTIME_DIR=/run/user/1000
         export LANG=en_US.UTF-8
+        export PROTON_ENABLE_XALIA=0
+        export WINE_FULLSCREEN_FSR=1
+        export WINE_FULLSCREEN_FSR_STRENGTH=2
         dbus-launch /usr/games/steam -bigpicture -nominidumps -nocrashmonitor -fulldesktopres
       '
       kill $INPUT_FIX_PID 2>/dev/null
@@ -578,6 +598,10 @@
       wait $OBPID 2>/dev/null
       wait $XPID 2>/dev/null
       su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --kill' 2>/dev/null
+      sleep 1
+      # Reset DRM mode natif pour que Kodi retrouve la bonne résolution
+      modetest -w 94:DPMS:0 2>/dev/null || true
+      sleep 1
       systemctl restart steam-switcher.path
       systemctl start kodi
 
