@@ -36,6 +36,16 @@ resource "proxmox_virtual_environment_download_file" "debian12_lxc" {
   overwrite_unmanaged = true
 }
 
+resource "proxmox_virtual_environment_download_file" "ubuntu2404_lxc" {
+  count               = var.deploy_media ? 1 : 0
+  content_type        = "vztmpl"
+  datastore_id        = "local"
+  node_name           = var.proxmox_node
+  url                 = "http://download.proxmox.com/images/system/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
+  file_name           = "ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
+  overwrite_unmanaged = true
+}
+
 # --- MODE VM + CILIUM ---
 
 resource "proxmox_virtual_environment_vm" "k3s_control" {
@@ -173,8 +183,8 @@ resource "proxmox_virtual_environment_container" "media_lxc" {
   }
 
   operating_system {
-    template_file_id = proxmox_virtual_environment_download_file.debian12_lxc[0].id
-    type             = "debian"
+    template_file_id = proxmox_virtual_environment_download_file.ubuntu2404_lxc[0].id
+    type             = "ubuntu"
   }
 
   features {

@@ -1,7 +1,7 @@
 ---
 # ============================================================
-# Rôle Media Center : Kodi (GBM) + RetroArch + PS3 Bluetooth
-# Cible : LXC privilégié Debian, affichage HDMI direct
+# Rôle Media Center : Kodi (GBM) + RetroArch + Steam + DS4 BT
+# Cible : LXC privilégié Ubuntu 24.04, affichage HDMI direct
 # ============================================================
 
 - name: Mise à jour apt
@@ -9,7 +9,16 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Installation des paquets media (Kodi, RetroArch, Bluetooth, GPU AMD)
+- name: Activer l'architecture i386 (requis pour Steam)
+  command: dpkg --add-architecture i386
+  args:
+    creates: /var/lib/dpkg/arch
+
+- name: Mise à jour apt après ajout i386
+  apt:
+    update_cache: true
+
+- name: Installation des paquets media (Kodi, RetroArch, Steam, Xorg, GPU AMD)
   apt:
     name:
       # Kodi et support streaming
@@ -18,29 +27,38 @@
       - kodi-inputstream-rtmp
       # Intégration Kodi + libretro (cores natifs Kodi)
       - kodi-game-libretro
-      - kodi-game-libretro-bsnes-mercury-accuracy    # SNES (précis)
-      - kodi-game-libretro-bsnes-mercury-performance # SNES (rapide)
-      # RetroArch + cores disponibles dans Debian 13
+      - kodi-game-libretro-bsnes-mercury-accuracy
+      - kodi-game-libretro-bsnes-mercury-performance
+      # RetroArch + cores Ubuntu 24.04 (plus complet que Debian)
       - retroarch
-      - retroarch-assets         # Assets Ozone/XMB/GLUI
-      - libretro-mgba          # GBA / GB / GBC
-      - libretro-nestopia       # NES
-      - libretro-bsnes-mercury-accuracy    # SNES (via RetroArch aussi)
-      - libretro-gambatte       # GB / GBC
-      - libretro-desmume        # Nintendo DS
-      - libretro-core-info      # Métadonnées des cores
+      - retroarch-assets
+      - libretro-mgba            # GBA / GB / GBC
+      - libretro-nestopia        # NES
+      - libretro-snes9x          # SNES
+      - libretro-bsnes-mercury-accuracy
+      - libretro-bsnes-mercury-balanced
+      - libretro-bsnes-mercury-performance
+      - libretro-gambatte        # GB / GBC (autre core)
+      - libretro-desmume         # Nintendo DS
+      - libretro-genesisplusgx   # Mega Drive / Genesis
+      - libretro-beetle-psx      # PlayStation 1
+      - libretro-beetle-pce-fast # PC Engine / TurboGrafx
+      - libretro-core-info       # Métadonnées des cores
       # SQLite (activation addon Kodi en DB)
       - sqlite3
-      # GPU AMD — VA-API pour transcodage hardware
+      # GPU AMD — VA-API + Vulkan pour transcodage + Steam/Proton
       - mesa-va-drivers
       - mesa-vdpau-drivers
+      - mesa-vulkan-drivers
+      - mesa-vulkan-drivers:i386
       - libva-drm2
       - vainfo
       - libgl1-mesa-dri
+      - libgl1-mesa-dri:i386
       # Audio
       - alsa-utils
       - pulseaudio
-      # Bluetooth (manette PS3 + télécommande BT)
+      # Bluetooth (manette DS4 + télécommande BT)
       - bluetooth
       - bluez
       - bluez-tools
@@ -48,12 +66,33 @@
       # Manettes et input
       - joystick
       - evtest
-      - libinput-tools          # Détection devices input via udev
-      - kodi-peripheral-joystick  # Support manettes (DS4, Xbox...) dans Kodi
+      - libinput-tools
+      - kodi-peripheral-joystick
+      # Steam (natif Ubuntu)
+      - steam-installer
+      - steam-libs
+      - steam-devices
+      # Xorg — serveur X pour Steam Big Picture (cage/Wayland incompatible)
+      - xserver-xorg-core
+      - xserver-xorg-input-libinput
+      - xserver-xorg-video-amdgpu
+      - xinit
+      - x11-xserver-utils
+      # D-Bus — requis par Steam runtime launcher service
+      - dbus-x11
+      # Seat management (requis pour Xorg en LXC sans logind)
+      - seatd
+      # Libs Proton / compatibilité Steam
+      - libvulkan1
+      - libvulkan1:i386
+      - libc6:i386
+      - libstdc++6:i386
       # Utilitaires
       - curl
       - wget
       - unzip
+      - xdg-user-dirs
+      - locales
     state: present
 
 - name: Création de l'utilisateur kodi
@@ -63,6 +102,27 @@
     groups: video,audio,input,render,bluetooth,tty
     shell: /bin/bash
     create_home: true
+
+- name: Générer la locale en_US.UTF-8 (requis par Steam / XOpenIM)
+  locale_gen:
+    name: en_US.UTF-8
+    state: present
+
+- name: Créer XDG_RUNTIME_DIR pour l'utilisateur kodi
+  file:
+    path: /run/user/1000
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0700'
+
+- name: Créer le dossier PulseAudio runtime
+  file:
+    path: /run/user/1000/pulse
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0700'
 
 - name: Droits udev — accès /dev/dri et /dev/input sans sudo
   copy:
@@ -76,14 +136,14 @@
       # Input (manettes, IR, claviers)
       SUBSYSTEM=="input", GROUP="input", MODE="0660"
 
-- name: Configuration ALSA — sortie HDMI par défaut
+- name: Configuration ALSA — sortie jack par défaut
   copy:
     dest: /etc/asound.conf
     content: |
-      defaults.pcm.card 0
-      defaults.ctl.card 0
+      defaults.pcm.card 1
+      defaults.ctl.card 1
 
-- name: Configuration Kodi — activer HDMI-CEC et gamepad
+- name: Configuration Kodi — dossier userdata
   file:
     path: /home/kodi/.kodi/userdata
     state: directory
@@ -99,7 +159,7 @@
     group: kodi
     mode: '0755'
 
-- name: Buttonmap DS4 pour peripheral.joystick Kodi (nom exact du device Linux)
+- name: Buttonmap DS4 pour peripheral.joystick Kodi
   copy:
     dest: /usr/share/kodi/addons/peripheral.joystick/resources/buttonmaps/xml/linux/Sony_Computer_Entertainment_Wireless_Controller_13b_8a.xml
     owner: root
@@ -155,16 +215,14 @@
     mode: '0644'
     content: |
       <advancedsettings version="1.0">
-        <!-- Cache buffer : 256 Mo pour éviter les stutters réseau -->
         <network>
           <buffermode>1</buffermode>
           <cachemembuffersize>268435456</cachemembuffersize>
         </network>
-        <!-- Démarrage direct sans splash screen -->
         <splash>false</splash>
       </advancedsettings>
 
-- name: Configuration guisettings.xml Kodi (HDMI-CEC + gamepad + screensaver)
+- name: Configuration guisettings.xml Kodi
   copy:
     dest: /home/kodi/.kodi/userdata/guisettings.xml
     owner: kodi
@@ -175,20 +233,17 @@
         <setting id="input.peripherals">true</setting>
         <setting id="locale.language">resource.language.fr_fr</setting>
         <setting id="lookandfeel.skin">skin.estuary</setting>
-        <!-- VA-API AMD pour transcodage hardware -->
         <setting id="videoplayer.usevaapi">true</setting>
         <setting id="videoplayer.usevaapimpeg4">true</setting>
         <setting id="videoplayer.usevaapihevc">true</setting>
         <setting id="videoplayer.usevaapimpeg2">true</setting>
-        <!-- Screensaver écran noir après 5 min d'inactivité -->
         <setting id="screensaver.mode">screensaver.xbmc.builtin.black</setting>
         <setting id="screensaver.time">5</setting>
         <setting id="screensaver.disableforaudio">true</setting>
-        <!-- Audio jack par défaut -->
         <setting id="audiooutput.audiodevice">ALSA:plughw:CARD=Generic_1,DEV=0</setting>
       </settings>
 
-- name: Configuration RetroArch — jouabilité TV + manette PS3
+- name: Configuration RetroArch — dossier
   file:
     path: /home/kodi/.config/retroarch
     state: directory
@@ -203,33 +258,23 @@
     group: kodi
     mode: '0644'
     content: |
-      # Sortie vidéo OpenGL via KMS/EGL (requis pour menu Ozone)
       video_driver = "gl"
       video_context_driver = "kms"
-      # Menu Ozone — moderne, supporte 1080p+
       menu_driver = "ozone"
-      # Assets système Debian
       assets_directory = "/usr/share/libretro/assets"
-      # Résolution plein écran TV
       video_fullscreen = "true"
       video_windowed_fullscreen = "false"
       video_fullscreen_x = "0"
       video_fullscreen_y = "0"
-      # Audio ALSA
+      input_driver = "udev"
       audio_driver = "alsa"
       audio_device = "plughw:1,0"
-      # Vsync pour éviter le tearing
       video_vsync = "true"
-      # Core info (extensions par core)
       libretro_info_path = "/usr/share/libretro/info"
-      # Chemin des ROMs
       rgui_browser_directory = "/home/kodi/roms"
-      # Chemin des saves
       savefile_directory = "/home/kodi/saves"
       savestate_directory = "/home/kodi/savestates"
-      # Manette : bouton Menu = F1 (ou Select+Start sur PS3)
       input_menu_toggle_gamepad_combo = "3"
-      # Quitter RetroArch = Select+Start
       input_quit_gamepad_combo = "4"
 
 - name: Volume ALSA par défaut (jack casque modéré)
@@ -258,13 +303,13 @@
     - /home/kodi/saves
     - /home/kodi/savestates
 
-- name: Symlink /root/roms vers /home/kodi/roms (RetroArch tourne en root)
+- name: Symlink /root/roms vers /home/kodi/roms
   file:
     src: /home/kodi/roms
     dest: /root/roms
     state: link
 
-- name: Télécharger le core FBNeo (Neo Geo / Arcade — absent des dépôts Debian)
+- name: Télécharger le core FBNeo (Neo Geo / Arcade)
   get_url:
     url: https://buildbot.libretro.com/nightly/linux/x86_64/latest/fbneo_libretro.so.zip
     dest: /tmp/fbneo_libretro.so.zip
@@ -282,7 +327,7 @@
     dest: /usr/share/libretro/info/fbneo_libretro.info
     mode: '0644'
 
-- name: Dossier cores RetroArch (chemin attendu par RetroArch en runtime)
+- name: Dossier cores RetroArch
   file:
     path: /home/kodi/.config/retroarch/cores
     state: directory
@@ -314,7 +359,7 @@
     group: kodi
     mode: '0755'
 
-- name: Télécharger les profils autoconfig manettes Libretro (DS4, Xbox, PS3...)
+- name: Télécharger les profils autoconfig manettes Libretro
   unarchive:
     src: https://github.com/libretro/retroarch-joypad-autoconfig/archive/refs/heads/master.tar.gz
     dest: /tmp/
@@ -332,6 +377,8 @@
     group: kodi
     recurse: true
 
+# --- Script de switch Kodi ↔ RetroArch ---
+
 - name: Script de switch Kodi ↔ RetroArch
   copy:
     dest: /usr/local/bin/launch-retroarch
@@ -339,15 +386,19 @@
     mode: '0755'
     content: |
       #!/bin/bash
-      # Déclenché par retroarch-switcher.path via fichier trigger
       rm -f /tmp/.launch-retroarch
       systemctl stop kodi
       sleep 2
       chown root:render /dev/dri/renderD128
-      HOME=/home/kodi LIBVA_DRIVER_NAME=radeonsi /usr/bin/retroarch --menu
+      export HOME=/home/kodi
+      export LIBVA_DRIVER_NAME=radeonsi
+      export XDG_RUNTIME_DIR=/run/user/0
+      mkdir -p "$XDG_RUNTIME_DIR"
+      dbus-run-session -- /usr/bin/retroarch --menu
+      systemctl restart retroarch-switcher.path
       systemctl start kodi
 
-- name: Service systemd — RetroArch switcher (oneshot)
+- name: Service systemd — RetroArch switcher
   copy:
     dest: /etc/systemd/system/retroarch-switcher.service
     owner: root
@@ -382,7 +433,73 @@
     state: started
     daemon_reload: true
 
-# --- Addon Kodi pour lancer RetroArch depuis les Favoris ---
+# --- Script de switch Kodi ↔ Steam Big Picture ---
+
+- name: Script de switch Kodi ↔ Steam
+  copy:
+    dest: /usr/local/bin/launch-steam
+    owner: root
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      rm -f /tmp/.launch-steam
+      systemctl stop kodi
+      sleep 2
+      chown root:render /dev/dri/renderD128
+      # Xorg pour Steam (cage/Wayland incompatible avec le re-exec Steam)
+      Xorg :0 -sharevts -novtswitch -keeptty -nolisten tcp 2>/dev/null &
+      XPID=$!
+      sleep 3
+      DISPLAY=:0 xhost + >/dev/null 2>&1
+      # Lancer Steam en tant que kodi avec environnement complet
+      su -l kodi -c '
+        export DISPLAY=:0
+        export XDG_RUNTIME_DIR=/run/user/1000
+        export LANG=en_US.UTF-8
+        dbus-launch /usr/games/steam -bigpicture -nominidumps -nocrashmonitor
+      '
+      # Nettoyage après fermeture de Steam
+      kill $XPID 2>/dev/null
+      wait $XPID 2>/dev/null
+      systemctl restart steam-switcher.path
+      systemctl start kodi
+
+- name: Service systemd — Steam switcher
+  copy:
+    dest: /etc/systemd/system/steam-switcher.service
+    owner: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Switch from Kodi to Steam Big Picture
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/launch-steam
+
+- name: Path unit systemd — surveille le trigger Steam
+  copy:
+    dest: /etc/systemd/system/steam-switcher.path
+    owner: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Watch for Steam launch request
+
+      [Path]
+      PathExists=/tmp/.launch-steam
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Activer le path unit Steam switcher
+  systemd:
+    name: steam-switcher.path
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# --- Addons Kodi ---
 
 - name: Répertoire addon script.launch.retroarch
   file:
@@ -392,7 +509,7 @@
     group: kodi
     mode: '0755'
 
-- name: addon.xml — déclaration de l'addon RetroArch
+- name: addon.xml — RetroArch
   copy:
     dest: /home/kodi/.kodi/addons/script.launch.retroarch/addon.xml
     owner: kodi
@@ -400,37 +517,63 @@
     mode: '0644'
     content: |
       <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-      <addon id="script.launch.retroarch"
-             name="RetroArch Launcher"
-             version="1.0.0"
-             provider-name="homelab">
-        <requires>
-          <import addon="xbmc.python" version="3.0.0"/>
-        </requires>
+      <addon id="script.launch.retroarch" name="RetroArch Launcher" version="1.0.0" provider-name="homelab">
+        <requires><import addon="xbmc.python" version="3.0.0"/></requires>
         <extension point="xbmc.python.script" library="default.py"/>
         <extension point="xbmc.addon.metadata">
           <summary lang="en">Launch RetroArch from Kodi</summary>
-          <description lang="en">Creates a trigger file and quits Kodi. A systemd path unit detects the trigger, launches RetroArch, and restarts Kodi on exit.</description>
           <platform>linux</platform>
         </extension>
       </addon>
 
-- name: default.py — script Python de l'addon
+- name: default.py — addon RetroArch
   copy:
     dest: /home/kodi/.kodi/addons/script.launch.retroarch/default.py
     owner: kodi
     group: kodi
     mode: '0644'
     content: |
-      import os
-      import xbmc
-
-      # Créer le fichier trigger — le path unit systemd fera le reste
+      import os, xbmc
       open("/tmp/.launch-retroarch", "w").close()
-      # Quitter Kodi proprement
       xbmc.executebuiltin("Quit")
 
-- name: favourites.xml — raccourci RetroArch dans les Favoris Kodi
+- name: Répertoire addon script.launch.steam
+  file:
+    path: /home/kodi/.kodi/addons/script.launch.steam
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: addon.xml — Steam
+  copy:
+    dest: /home/kodi/.kodi/addons/script.launch.steam/addon.xml
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <addon id="script.launch.steam" name="Steam Launcher" version="1.0.0" provider-name="homelab">
+        <requires><import addon="xbmc.python" version="3.0.0"/></requires>
+        <extension point="xbmc.python.script" library="default.py"/>
+        <extension point="xbmc.addon.metadata">
+          <summary lang="en">Launch Steam Big Picture from Kodi</summary>
+          <platform>linux</platform>
+        </extension>
+      </addon>
+
+- name: default.py — addon Steam
+  copy:
+    dest: /home/kodi/.kodi/addons/script.launch.steam/default.py
+    owner: kodi
+    group: kodi
+    mode: '0644'
+    content: |
+      import os, xbmc
+      open("/tmp/.launch-steam", "w").close()
+      xbmc.executebuiltin("Quit")
+
+- name: favourites.xml — raccourcis RetroArch + Steam dans Kodi
   copy:
     dest: /home/kodi/.kodi/userdata/favourites.xml
     owner: kodi
@@ -440,9 +583,10 @@
       <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       <favourites>
         <favourite name="RetroArch">RunScript(script.launch.retroarch)</favourite>
+        <favourite name="Steam">RunScript(script.launch.steam)</favourite>
       </favourites>
 
-- name: Configuration Bluetooth — activation automatique + trust PS3
+- name: Configuration Bluetooth
   copy:
     dest: /etc/bluetooth/main.conf
     content: |
@@ -453,7 +597,7 @@
       Class=0x000100
       DiscoverableTimeout=0
 
-- name: Service systemd — Kodi en GBM/KMS sur tty1
+- name: Service systemd — Kodi en GBM/KMS
   copy:
     dest: /etc/systemd/system/kodi.service
     owner: root
@@ -470,9 +614,7 @@
       Environment=HOME=/home/kodi
       Environment=LIBVA_DRIVER_NAME=radeonsi
       Environment=MESA_GL_VERSION_OVERRIDE=3.3
-      # Fix renderD128 group au démarrage
       ExecStartPre=/bin/chown root:render /dev/dri/renderD128
-      # GBM/KMS direct — PulseAudio via audio-backend
       ExecStart=/usr/bin/kodi --standalone --windowing=gbm --audio-backend=pulseaudio
       StandardOutput=journal
       StandardError=journal
@@ -494,10 +636,10 @@
     path: /home/kodi/.kodi/userdata/Database/Addons33.db
     timeout: 30
 
-- name: Activer l'addon script.launch.retroarch dans la DB Kodi
+- name: Activer les addons launcher dans la DB Kodi
   shell: >
     sqlite3 /home/kodi/.kodi/userdata/Database/Addons33.db
-    "UPDATE installed SET enabled=1 WHERE addonID='script.launch.retroarch';"
+    "UPDATE installed SET enabled=1 WHERE addonID IN ('script.launch.retroarch','script.launch.steam');"
   register: addon_enable
   changed_when: addon_enable.rc == 0
   retries: 3
@@ -509,11 +651,10 @@
     enabled: true
     state: started
 
-- name: "INFO — Appairage manette PS3"
+- name: "INFO — Appairage manette DS4"
   debug:
     msg: |
-      Pour appairer la manette PS3 :
-      1. Connecter la manette en USB une première fois
-      2. Sur le LXC : bluetoothctl → power on → agent on → scan on
-      3. La manette PS3 apparaît automatiquement après connexion USB
-      4. Une fois appairée, elle se reconnecte automatiquement via Bluetooth
+      Pour appairer la DS4 en Bluetooth, depuis l'hôte PVE :
+        bt-pair pair   (PS+Share ~3s pour mode pairing)
+      Pour switcher la sortie audio :
+        audio-switch jack | hdmi | status

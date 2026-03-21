@@ -1,0 +1,99 @@
+kube-prometheus-stack:
+
+  crds:
+    enabled: true
+
+  # --- Grafana ---
+  grafana:
+    admin:
+      existingSecret: grafana-admin-secret
+      userKey: admin-user
+      passwordKey: admin-password
+
+    persistence:
+      enabled: true
+      size: 2Gi
+
+    ingress:
+      enabled: true
+      ingressClassName: nginx-private
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+        external-dns.alpha.kubernetes.io/hostname: "grafana.int.fabsys.ovh"
+        external-dns.alpha.kubernetes.io/target: "192.168.1.251"
+      hosts:
+        - grafana.int.fabsys.ovh
+      tls:
+        - hosts:
+            - grafana.int.fabsys.ovh
+          secretName: grafana-tls
+
+    # Dashboards k8s supplémentaires activés par défaut
+    defaultDashboardsEnabled: true
+    defaultDashboardsTimezone: Europe/Paris
+
+  # --- Prometheus ---
+  prometheus:
+    ingress:
+      enabled: true
+      ingressClassName: nginx-private
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+        external-dns.alpha.kubernetes.io/hostname: "prometheus.int.fabsys.ovh"
+        external-dns.alpha.kubernetes.io/target: "192.168.1.251"
+      hosts:
+        - prometheus.int.fabsys.ovh
+      tls:
+        - hosts:
+            - prometheus.int.fabsys.ovh
+          secretName: prometheus-tls
+
+    prometheusSpec:
+      retention: 15d
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 10Gi
+
+  # --- Alertmanager ---
+  alertmanager:
+    alertmanagerSpec:
+      # Référence la SealedSecret qui contient la config complète (Telegram, etc.)
+      configSecret: alertmanager-config
+
+      storage:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 1Gi
+
+    ingress:
+      enabled: true
+      ingressClassName: nginx-private
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+        external-dns.alpha.kubernetes.io/hostname: "alertmanager.int.fabsys.ovh"
+        external-dns.alpha.kubernetes.io/target: "192.168.1.251"
+      hosts:
+        - alertmanager.int.fabsys.ovh
+      tls:
+        - hosts:
+            - alertmanager.int.fabsys.ovh
+          secretName: alertmanager-tls
+
+  # --- Compatibilité k3s ---
+  # Ces composants sont embarqués dans k3s et non scrapables via les endpoints standards.
+  # Les laisser activés génère des alertes "down" permanentes.
+  kubeControllerManager:
+    enabled: false
+  kubeScheduler:
+    enabled: false
+  kubeEtcd:
+    enabled: false
+  kubeProxy:
+    enabled: false
