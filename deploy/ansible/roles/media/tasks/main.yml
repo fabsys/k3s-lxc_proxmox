@@ -49,6 +49,7 @@
       - joystick
       - evtest
       - libinput-tools          # Détection devices input via udev
+      - kodi-peripheral-joystick  # Support manettes (DS4, Xbox...) dans Kodi
       # Utilitaires
       - curl
       - wget
@@ -89,6 +90,62 @@
     owner: kodi
     group: kodi
     mode: '0755'
+
+- name: Dossier keymaps Kodi
+  file:
+    path: /home/kodi/.kodi/userdata/keymaps
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: Buttonmap DS4 pour peripheral.joystick Kodi (nom exact du device Linux)
+  copy:
+    dest: /usr/share/kodi/addons/peripheral.joystick/resources/buttonmaps/xml/linux/Sony_Computer_Entertainment_Wireless_Controller_13b_8a.xml
+    owner: root
+    mode: '0644'
+    content: |
+      <?xml version="1.0" ?>
+      <buttonmap>
+          <device name="Sony Computer Entertainment Wireless controller" provider="linux" buttoncount="13" axiscount="8">
+              <configuration>
+                  <appearance id="game.controller.ps.dualanalog" />
+                  <axis index="2" center="-1" range="2" />
+                  <axis index="5" center="-1" range="2" />
+              </configuration>
+              <controller id="game.controller.default">
+                  <feature name="a" button="0" />
+                  <feature name="b" button="1" />
+                  <feature name="back" button="8" />
+                  <feature name="down" axis="+7" />
+                  <feature name="guide" button="10" />
+                  <feature name="left" axis="-6" />
+                  <feature name="leftbumper" button="4" />
+                  <feature name="leftstick">
+                      <up axis="-1" />
+                      <down axis="+1" />
+                      <right axis="+0" />
+                      <left axis="-0" />
+                  </feature>
+                  <feature name="leftthumb" button="11" />
+                  <feature name="lefttrigger" axis="+2" />
+                  <feature name="right" axis="+6" />
+                  <feature name="rightbumper" button="5" />
+                  <feature name="rightstick">
+                      <up axis="-4" />
+                      <down axis="+4" />
+                      <right axis="+3" />
+                      <left axis="-3" />
+                  </feature>
+                  <feature name="rightthumb" button="12" />
+                  <feature name="righttrigger" axis="+5" />
+                  <feature name="start" button="9" />
+                  <feature name="up" axis="-7" />
+                  <feature name="x" button="3" />
+                  <feature name="y" button="2" />
+              </controller>
+          </device>
+      </buttonmap>
 
 - name: Configuration advancedsettings.xml Kodi
   copy:
@@ -210,6 +267,56 @@
     url: https://raw.githubusercontent.com/libretro/libretro-core-info/master/fbneo_libretro.info
     dest: /usr/share/libretro/info/fbneo_libretro.info
     mode: '0644'
+
+- name: Dossier cores RetroArch (chemin attendu par RetroArch en runtime)
+  file:
+    path: /home/kodi/.config/retroarch/cores
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: Copier tous les cores .so dans le dossier RetroArch
+  shell: cp /usr/lib/x86_64-linux-gnu/libretro/*.so /home/kodi/.config/retroarch/cores/
+  changed_when: true
+
+- name: Copier tous les core info dans le dossier RetroArch
+  shell: cp /usr/share/libretro/info/*.info /home/kodi/.config/retroarch/cores/
+  changed_when: true
+
+- name: Droits sur le dossier cores
+  file:
+    path: /home/kodi/.config/retroarch/cores
+    state: directory
+    owner: kodi
+    group: kodi
+    recurse: true
+
+- name: Dossier autoconfig manettes RetroArch
+  file:
+    path: /home/kodi/.config/retroarch/autoconfig
+    state: directory
+    owner: kodi
+    group: kodi
+    mode: '0755'
+
+- name: Télécharger les profils autoconfig manettes Libretro (DS4, Xbox, PS3...)
+  unarchive:
+    src: https://github.com/libretro/retroarch-joypad-autoconfig/archive/refs/heads/master.tar.gz
+    dest: /tmp/
+    remote_src: true
+
+- name: Installer les profils autoconfig Linux/udev
+  shell: cp -r /tmp/retroarch-joypad-autoconfig-master/udev/* /home/kodi/.config/retroarch/autoconfig/
+  changed_when: true
+
+- name: Droits sur le dossier autoconfig
+  file:
+    path: /home/kodi/.config/retroarch/autoconfig
+    state: directory
+    owner: kodi
+    group: kodi
+    recurse: true
 
 - name: Script de switch Kodi ↔ RetroArch
   copy:

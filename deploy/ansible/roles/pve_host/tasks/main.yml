@@ -94,6 +94,55 @@
     create: false
   when: deploy_media | bool
 
+- name: Supprimer entrées BT HCI incorrectes du LXC media (hci0 n'a pas de nœud device)
+  lineinfile:
+    path: /etc/pve/lxc/{{ media_lxc_id }}.conf
+    line: "{{ item }}"
+    state: absent
+  loop:
+    - "# Bluetooth HCI passthrough (Realtek RTL8852BU)"
+    - "lxc.cgroup2.devices.allow: c 248:* rwm"
+    - "lxc.mount.entry: /dev/hci0 dev/hci0 none bind,optional,create=file"
+  when: deploy_media | bool
+
+# --- Bluetooth sur l'hôte PVE (DS4 BT géré sur l'hôte, events forwarded via /dev/input) ---
+
+- name: Installer bluez sur l'hôte PVE
+  apt:
+    name: bluez
+    state: present
+    update_cache: false
+  when: deploy_media | bool
+
+- name: Service systemd — binding Realtek RTL8852BU (0bda:b85b) vers btusb au boot
+  copy:
+    dest: /etc/systemd/system/btusb-realtek.service
+    content: |
+      [Unit]
+      Description=Bind Realtek RTL8852BU USB BT adapter to btusb driver
+      After=bluetooth.service
+      Wants=bluetooth.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/sh -c 'modprobe btusb && echo "0bda b85b" > /sys/bus/usb/drivers/btusb/new_id || true'
+
+      [Install]
+      WantedBy=multi-user.target
+  when: deploy_media | bool
+
+- name: Activer btusb-realtek et bluetooth au démarrage PVE
+  systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop:
+    - bluetooth
+    - btusb-realtek
+  when: deploy_media | bool
+
 - name: Redémarrage du LXC media (si config passthrough modifiée)
   command: pct reboot {{ media_lxc_id }}
   when:
