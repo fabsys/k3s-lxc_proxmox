@@ -211,6 +211,7 @@
       video_fullscreen_y = "0"
       # Audio ALSA
       audio_driver = "alsa"
+      audio_device = "plughw:1,0"
       # Vsync pour éviter le tearing
       video_vsync = "true"
       # Core info (extensions par core)
@@ -224,6 +225,13 @@
       input_menu_toggle_gamepad_combo = "3"
       # Quitter RetroArch = Select+Start
       input_quit_gamepad_combo = "4"
+
+- name: Volume ALSA par défaut (jack casque modéré)
+  command: "amixer -c 1 set {{ item.control }} {{ item.level }} unmute"
+  loop:
+    - { control: "Master", level: "50%" }
+    - { control: "Headphone", level: "60%" }
+  changed_when: false
 
 - name: Dossiers ROMs et saves
   file:

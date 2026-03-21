@@ -143,6 +143,20 @@
     - btusb-realtek
   when: deploy_media | bool
 
+- name: Déployer audio-switch sur l'hôte PVE
+  copy:
+    src: audio-switch.sh
+    dest: /usr/local/bin/audio-switch
+    mode: '0755'
+  when: deploy_media | bool
+
+- name: Déployer bt-pair sur l'hôte PVE
+  copy:
+    src: bt-pair.sh
+    dest: /usr/local/bin/bt-pair
+    mode: '0755'
+  when: deploy_media | bool
+
 - name: Redémarrage du LXC media (si config passthrough modifiée)
   command: pct reboot {{ media_lxc_id }}
   when:
