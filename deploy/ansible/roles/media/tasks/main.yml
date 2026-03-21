@@ -135,6 +135,8 @@
       KERNEL=="fb[0-9]*", GROUP="video", MODE="0660"
       # Input (manettes, IR, claviers)
       SUBSYSTEM=="input", GROUP="input", MODE="0660"
+      # uinput (Steam crée des gamepads virtuels pour Proton)
+      KERNEL=="uinput", GROUP="input", MODE="0660"
 
 - name: Configuration ALSA — sortie jack par défaut
   copy:
