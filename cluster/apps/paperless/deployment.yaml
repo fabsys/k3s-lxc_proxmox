@@ -96,7 +96,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: paperless-ngx
-          image: ghcr.io/paperless-ngx/paperless-ngx:2.20.11
+          image: ghcr.io/paperless-ngx/paperless-ngx:2.20.13
           envFrom:
             - configMapRef:
                 name: paperless-config
