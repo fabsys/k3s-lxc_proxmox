@@ -453,6 +453,168 @@
         done
       done
 
+- name: Script drm-modeset — pré-initialisation DRM HDMI pour Kodi
+  copy:
+    dest: /usr/local/bin/drm-modeset
+    owner: root
+    mode: '0755'
+    content: |
+      #!/usr/bin/env python3
+      """Pre-initialize DRM mode on HDMI connector.
+
+      Kodi GBM requires encoder_id > 0 on the connector to consider it "usable".
+      Without an active mode set, the encoder is 0. This script sets a 1920x1080@60Hz
+      mode via drmModeSetCrtc, then drops master and keeps the fd open so the encoder
+      assignment persists. Kodi will steal DRM master when it starts.
+      """
+      import os, sys, fcntl, ctypes, signal, time
+
+      CONNECTOR_ID = 94
+      PIDFILE = "/run/drm-modeset.pid"
+
+      class drmModeRes(ctypes.Structure):
+          _fields_ = [("count_fbs", ctypes.c_int), ("fbs", ctypes.POINTER(ctypes.c_uint32)),
+                      ("count_crtcs", ctypes.c_int), ("crtcs", ctypes.POINTER(ctypes.c_uint32)),
+                      ("count_connectors", ctypes.c_int), ("connectors", ctypes.POINTER(ctypes.c_uint32)),
+                      ("count_encoders", ctypes.c_int), ("encoders", ctypes.POINTER(ctypes.c_uint32)),
+                      ("min_width", ctypes.c_uint32), ("max_width", ctypes.c_uint32),
+                      ("min_height", ctypes.c_uint32), ("max_height", ctypes.c_uint32)]
+
+      class drmModeModeInfo(ctypes.Structure):
+          _fields_ = [("clock", ctypes.c_uint32),
+                      ("hdisplay", ctypes.c_uint16), ("hsync_start", ctypes.c_uint16),
+                      ("hsync_end", ctypes.c_uint16), ("htotal", ctypes.c_uint16),
+                      ("hskew", ctypes.c_uint16),
+                      ("vdisplay", ctypes.c_uint16), ("vsync_start", ctypes.c_uint16),
+                      ("vsync_end", ctypes.c_uint16), ("vtotal", ctypes.c_uint16),
+                      ("vscan", ctypes.c_uint16),
+                      ("vrefresh", ctypes.c_uint32), ("flags", ctypes.c_uint32),
+                      ("type", ctypes.c_uint32), ("name", ctypes.c_char * 32)]
+
+      class drmModeConnector(ctypes.Structure):
+          _fields_ = [("connector_id", ctypes.c_uint32), ("encoder_id", ctypes.c_uint32),
+                      ("connector_type", ctypes.c_uint32), ("connector_type_id", ctypes.c_uint32),
+                      ("connection", ctypes.c_int), ("mmWidth", ctypes.c_uint32),
+                      ("mmHeight", ctypes.c_uint32), ("subconnector", ctypes.c_int),
+                      ("count_modes", ctypes.c_int), ("modes", ctypes.POINTER(drmModeModeInfo)),
+                      ("count_props", ctypes.c_int), ("props", ctypes.POINTER(ctypes.c_uint32)),
+                      ("prop_values", ctypes.POINTER(ctypes.c_uint64)),
+                      ("count_encoders", ctypes.c_int), ("encoders", ctypes.POINTER(ctypes.c_uint32))]
+
+      class drm_mode_create_dumb(ctypes.Structure):
+          _fields_ = [("height", ctypes.c_uint32), ("width", ctypes.c_uint32),
+                      ("bpp", ctypes.c_uint32), ("flags", ctypes.c_uint32),
+                      ("handle", ctypes.c_uint32), ("pitch", ctypes.c_uint32),
+                      ("size", ctypes.c_uint64)]
+
+      class drm_mode_fb_cmd(ctypes.Structure):
+          _fields_ = [("fb_id", ctypes.c_uint32), ("width", ctypes.c_uint32),
+                      ("height", ctypes.c_uint32), ("pitch", ctypes.c_uint32),
+                      ("bpp", ctypes.c_uint32), ("depth", ctypes.c_uint32),
+                      ("handle", ctypes.c_uint32)]
+
+      def find_mode(conn_ptr, target_w=1920, target_h=1080, target_hz=60):
+          c = conn_ptr.contents
+          for i in range(c.count_modes):
+              m = c.modes[i]
+              if m.hdisplay == target_w and m.vdisplay == target_h and m.vrefresh == target_hz:
+                  return m
+          return c.modes[0] if c.count_modes > 0 else None
+
+      def main():
+          libdrm = ctypes.CDLL("libdrm.so.2")
+          libdrm.drmModeGetResources.restype = ctypes.POINTER(drmModeRes)
+          libdrm.drmModeGetConnector.restype = ctypes.POINTER(drmModeConnector)
+          libdrm.drmModeSetCrtc.restype = ctypes.c_int
+
+          fd = os.open("/dev/dri/card1", os.O_RDWR | os.O_CLOEXEC)
+          try:
+              fcntl.ioctl(fd, 0x641e)  # DRM_IOCTL_SET_MASTER
+          except OSError as e:
+              print(f"Cannot set DRM master: {e}", file=sys.stderr)
+              sys.exit(1)
+
+          resources = libdrm.drmModeGetResources(fd)
+          if not resources:
+              print("drmModeGetResources failed", file=sys.stderr); sys.exit(1)
+
+          conn = libdrm.drmModeGetConnector(fd, CONNECTOR_ID)
+          if not conn:
+              print(f"Connector {CONNECTOR_ID} not found", file=sys.stderr); sys.exit(1)
+
+          c = conn.contents
+          if c.connection != 1:
+              print(f"HDMI not connected (status={c.connection}), skipping"); sys.exit(0)
+          if c.count_modes == 0:
+              print("No modes available", file=sys.stderr); sys.exit(1)
+
+          mode = find_mode(conn)
+          if mode is None:
+              print("No suitable mode found", file=sys.stderr); sys.exit(1)
+          crtc_id = resources.contents.crtcs[0]
+
+          create = drm_mode_create_dumb()
+          create.width, create.height, create.bpp = mode.hdisplay, mode.vdisplay, 32
+          fcntl.ioctl(fd, 0xC02064B2, create)
+
+          fb = drm_mode_fb_cmd()
+          fb.width, fb.height = mode.hdisplay, mode.vdisplay
+          fb.pitch, fb.bpp, fb.depth, fb.handle = create.pitch, 32, 24, create.handle
+          fcntl.ioctl(fd, 0xC01C64AE, fb)
+
+          conn_id = ctypes.c_uint32(CONNECTOR_ID)
+          ret = libdrm.drmModeSetCrtc(fd, crtc_id, fb.fb_id, 0, 0,
+                                       ctypes.byref(conn_id), 1, ctypes.byref(mode))
+          if ret != 0:
+              print(f"drmModeSetCrtc failed: {ret}", file=sys.stderr); sys.exit(1)
+
+          fcntl.ioctl(fd, 0x641f)  # DRM_IOCTL_DROP_MASTER
+          print(f"DRM mode set: {mode.hdisplay}x{mode.vdisplay}@{mode.vrefresh}Hz on CRTC {crtc_id}")
+
+          with open(PIDFILE, "w") as f:
+              f.write(str(os.getpid()))
+
+          def cleanup(signum, frame):
+              try: os.unlink(PIDFILE)
+              except OSError: pass
+              os.close(fd); sys.exit(0)
+
+          signal.signal(signal.SIGTERM, cleanup)
+          signal.signal(signal.SIGINT, cleanup)
+          while True:
+              time.sleep(86400)
+
+      if __name__ == "__main__":
+          main()
+
+- name: Service systemd — drm-modeset (pré-init HDMI pour Kodi)
+  copy:
+    dest: /etc/systemd/system/drm-modeset.service
+    owner: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=DRM HDMI Mode Pre-initialization
+      Before=kodi.service
+      After=systemd-udevd.service
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/bin/drm-modeset
+      PIDFile=/run/drm-modeset.pid
+      Restart=on-failure
+      RestartSec=3
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Activer le service drm-modeset
+  systemd:
+    name: drm-modeset
+    enabled: true
+    state: started
+    daemon_reload: true
+
 - name: Script de recovery fix-kodi
   copy:
     dest: /usr/local/bin/fix-kodi
@@ -465,9 +627,9 @@
       sleep 2
       /usr/local/bin/force-stop-all
       sleep 1
-      # Reset DRM mode natif après fermeture de Xorg
-      modetest -w 94:DPMS:0 2>/dev/null || true
-      sleep 1
+      # Restart DRM mode initialization
+      systemctl restart drm-modeset
+      sleep 2
       systemctl start kodi
       sleep 3
       # Fallback : si Kodi en mode dégradé, restart LXC via PVE
@@ -831,8 +993,8 @@
     content: |
       [Unit]
       Description=Kodi Media Center (GBM/KMS)
-      After=systemd-udevd.service bluetooth.service sound.target
-      Wants=bluetooth.service
+      After=systemd-udevd.service bluetooth.service sound.target drm-modeset.service
+      Wants=bluetooth.service drm-modeset.service
 
       [Service]
       Type=simple
