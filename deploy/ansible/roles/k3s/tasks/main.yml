@@ -19,14 +19,31 @@
   args:
     creates: /usr/local/bin/k3s
 
-- name: Fix /dev/kmsg pour LXC (lien vers /dev/console)
-  shell: |
-    if [ ! -e /dev/kmsg ]; then
-      ln -s /dev/console /dev/kmsg
-    fi
+- name: Fix /dev/kmsg pour LXC (lien vers /dev/console — persistant au reboot)
+  copy:
+    dest: /etc/systemd/system/fix-kmsg.service
+    content: |
+      [Unit]
+      Description=Create /dev/kmsg symlink for K3s in LXC
+      Before=k3s.service
+      ConditionPathExists=!/dev/kmsg
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/ln -sf /dev/console /dev/kmsg
+
+      [Install]
+      WantedBy=multi-user.target
   when: k3s_target == 'lxc'
-  args:
-    creates: /dev/kmsg
+
+- name: Activer fix-kmsg au démarrage
+  systemd:
+    name: fix-kmsg
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: k3s_target == 'lxc'
 
 - name: Configuration du service k3s (Template propre pour LXC)
   copy:
