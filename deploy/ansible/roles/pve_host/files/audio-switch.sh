@@ -17,7 +17,7 @@ HDMI_KODI="ALSA:hdmi:CARD=Generic,DEV=3"
 
 # RetroArch ALSA device names
 JACK_RETROARCH="plughw:1,0"
-HDMI_RETROARCH="hdmi:0,3"
+HDMI_RETROARCH="plughw:0,3"
 
 usage() {
   echo "Usage: $0 [jack|hdmi|status]"
@@ -52,10 +52,13 @@ switch_to() {
       "$RETROARCH_CFG"
   fi
 
-  # Volume ALSA (jack = modéré pour casque, HDMI = 100%)
-  local vol="$4"
-  pct exec "$LXC_ID" -- amixer -c 1 -q set Master "${vol}" unmute
-  pct exec "$LXC_ID" -- amixer -c 1 -q set Headphone "${vol}" unmute
+  # Volume ALSA
+  if [ "$label" = "HDMI TV" ]; then
+    pct exec "$LXC_ID" -- amixer -c 0 -q set Master "$4" unmute 2>/dev/null || true
+  else
+    pct exec "$LXC_ID" -- amixer -c 1 -q set Master "$4" unmute 2>/dev/null || true
+    pct exec "$LXC_ID" -- amixer -c 1 -q set Headphone "$4" unmute 2>/dev/null || true
+  fi
 
   echo "→ Démarrage de Kodi..."
   pct exec "$LXC_ID" -- systemctl start kodi
