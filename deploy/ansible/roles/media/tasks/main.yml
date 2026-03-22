@@ -318,7 +318,7 @@
     dest: /home/kodi/.config/retroarch/retroarch.cfg
     owner: kodi
     group: kodi
-    mode: '0644'
+    mode: '0444'
     content: |
       video_driver = "gl"
       video_context_driver = "kms"
@@ -527,6 +527,8 @@
       systemctl stop kodi
       sleep 2
       chown root:render /dev/dri/renderD128
+      # Activer le switch IEC958 HDMI pour la sortie HISENSE
+      amixer -c 0 set 'IEC958',0 on 2>/dev/null || true
       export HOME=/home/kodi
       export LIBVA_DRIVER_NAME=radeonsi
       export XDG_RUNTIME_DIR=/run/user/0
