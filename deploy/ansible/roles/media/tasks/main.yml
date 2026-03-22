@@ -447,8 +447,14 @@
     mode: '0755'
     content: |
       #!/bin/bash
+      # Exclut le PID courant et son parent pour ne pas se suicider
+      # quand appelé depuis launch-steam (pgrep -f "steam" matcherait launch-steam)
+      SELF=$$
+      PARENT=$PPID
       for proc in steam Xorg openbox wineserver proton wine pulseaudio; do
         for pid in $(pgrep -f "$proc"); do
+          [ "$pid" = "$SELF" ] && continue
+          [ "$pid" = "$PARENT" ] && continue
           /bin/kill -9 "$pid" 2>/dev/null
         done
       done
