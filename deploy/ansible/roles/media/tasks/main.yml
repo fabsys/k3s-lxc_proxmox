@@ -330,7 +330,7 @@
       video_fullscreen_y = "0"
       input_driver = "udev"
       audio_driver = "alsa"
-      audio_device = "plughw:1,0"
+      audio_device = "plughw:0,3"
       video_vsync = "true"
       libretro_info_path = "/usr/share/libretro/info"
       rgui_browser_directory = "/home/kodi/roms"
@@ -339,12 +339,10 @@
       input_menu_toggle_gamepad_combo = "3"
       input_quit_gamepad_combo = "4"
 
-- name: Volume ALSA par défaut (jack casque modéré)
-  command: "amixer -c 1 set {{ item.control }} {{ item.level }} unmute"
-  loop:
-    - { control: "Master", level: "50%" }
-    - { control: "Headphone", level: "60%" }
+- name: Volume ALSA HDMI par défaut
+  command: "amixer -c 0 set Master 80% unmute"
   changed_when: false
+  failed_when: false
 
 - name: Dossiers ROMs et saves
   file:
