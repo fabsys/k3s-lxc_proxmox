@@ -846,9 +846,12 @@
       wait $XPID 2>/dev/null
       su -l kodi -c 'XDG_RUNTIME_DIR=/run/user/1000 pulseaudio --kill' 2>/dev/null
       sleep 1
-      # Reset DRM mode natif pour que Kodi retrouve la bonne résolution
-      modetest -w 94:DPMS:0 2>/dev/null || true
+      # Kill tout processus résiduel (Xorg, Wine, etc.) pour libérer DRM master
+      /usr/local/bin/force-stop-all
       sleep 1
+      # Réinitialiser DRM mode pour que Kodi retrouve encoder_id > 0
+      systemctl restart drm-modeset
+      sleep 2
       systemctl restart steam-switcher.path
       systemctl start kodi
 
