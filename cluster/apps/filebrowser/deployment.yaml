@@ -35,7 +35,7 @@ spec:
       volumes:
         - name: data
           hostPath:
-            path: /mnt/shared_data/movies
+            path: /mnt/data/movies
             type: Directory
         - name: config
           emptyDir: {} 

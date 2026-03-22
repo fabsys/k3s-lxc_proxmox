@@ -151,17 +151,17 @@ spec:
       volumes:
         - name: paperless-data
           hostPath:
-            path: /mnt/shared_data/paperless/data
+            path: /mnt/data/paperless/data
             type: DirectoryOrCreate
         - name: paperless-media
           hostPath:
-            path: /mnt/shared_data/paperless/media
+            path: /mnt/data/paperless/media
             type: DirectoryOrCreate
         - name: paperless-consume
           hostPath:
-            path: /mnt/shared_data/paperless/consume
+            path: /mnt/data/paperless/consume
             type: DirectoryOrCreate
         - name: paperless-export
           hostPath:
-            path: /mnt/shared_data/paperless/export
+            path: /mnt/data/paperless/export
             type: DirectoryOrCreate

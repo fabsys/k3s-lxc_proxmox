@@ -354,7 +354,7 @@ spec:
           emptyDir: {}
         - name: media
           hostPath:
-            path: /mnt/shared_data/paperless/media
+            path: /mnt/data/paperless/media
             type: Directory
         - name: rclone-config
           secret:

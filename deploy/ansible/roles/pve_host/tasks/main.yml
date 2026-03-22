@@ -170,7 +170,6 @@
   file:
     path: /mnt/data
     state: directory
-  when: deploy_media | bool
 
 - name: Monter le SSD données (/dev/nvme0n1p1) via fstab
   mount:
@@ -180,32 +179,30 @@
     opts: defaults,noatime
     passno: "2"
     state: mounted
-  when: deploy_media | bool
 
 - name: Créer l'arborescence de données sur le SSD
   file:
     path: "/mnt/data/{{ item }}"
     state: directory
+    owner: "1000"
+    group: "1000"
   loop:
     - games/steam
     - games/non-steam
     - movies
+    - movies/joal-import
     - paperless
+    - paperless/data
+    - paperless/media
+    - paperless/consume
+    - paperless/export
     - nextcloud
     - backup
-  when: deploy_media | bool
 
-- name: Ownership des dossiers media (kodi user namespace)
+- name: Droits spéciaux joal-import (777)
   file:
-    path: "/mnt/data/{{ item }}"
-    state: directory
-    owner: "{{ 100000 + 1000 }}"
-    group: "{{ 100000 + 1000 }}"
-    recurse: true
-  loop:
-    - games
-    - movies
-  when: deploy_media | bool
+    path: /mnt/data/movies/joal-import
+    mode: '0777'
 
 - name: Bind-mount SSD données dans le LXC media
   lineinfile:
@@ -215,9 +212,24 @@
   when: deploy_media | bool
   register: media_games_mount
 
+- name: Bind-mount SSD données dans le LXC K3s
+  lineinfile:
+    path: /etc/pve/lxc/{{ lxc_id }}.conf
+    line: "mp0: /mnt/data,mp=/mnt/data"
+    create: false
+  when: k3s_target == 'lxc'
+  register: k3s_data_mount
+
 - name: Redémarrage du LXC media (si config passthrough modifiée)
   command: pct reboot {{ media_lxc_id }}
   when:
     - deploy_media | bool
     - media_lxc_config.changed or (media_games_mount is defined and media_games_mount.changed)
+  ignore_errors: true
+
+- name: Redémarrage du LXC K3s (si bind-mount ajouté)
+  command: pct reboot {{ lxc_id }}
+  when:
+    - k3s_target == 'lxc'
+    - k3s_data_mount is defined and k3s_data_mount.changed
   ignore_errors: true

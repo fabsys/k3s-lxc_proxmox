@@ -5,9 +5,12 @@ k3s_target: "vm" # vm ou lxc
 k3s_user: "{{ 'root' if k3s_target == 'lxc' else 'ansible' }}"
 k3s_home: "{{ '/root' if k3s_target == 'lxc' else '/home/ansible' }}"
 
+# LXC IDs
+lxc_id: 300
+media_lxc_id: 301
+
 # Media Center
 deploy_media: false
-media_lxc_id: 301
 media_lxc_ip: "192.168.1.101"
 k3s_cni: "cilium" # cilium ou calico
 gpu_type: "amd" # intel ou amd
@@ -34,6 +37,6 @@ github_repo: "https://github.com/fabsys/k3s-lxc_proxmox.git"
 # Virtiofs — points de montage dans la VM
 virtiofs_mounts:
   - tag: movies
-    path: /mnt/shared_data/movies
+    path: /mnt/data/movies
   - tag: paperless
-    path: /mnt/shared_data/paperless
+    path: /mnt/data/paperless

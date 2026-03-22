@@ -43,5 +43,5 @@ spec:
         # On pointe vers le même dossier parent que les autres
         - name: all-media
           hostPath:
-            path: "/mnt/shared_data/movies"
+            path: "/mnt/data/movies"
             type: Directory

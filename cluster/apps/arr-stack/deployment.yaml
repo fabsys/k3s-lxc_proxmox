@@ -49,7 +49,7 @@ spec:
         # Volume parent qui contient /movies, /shows et /downloads
         - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies
+            path: /mnt/data/movies
             type: Directory
         # Pour le render materiel
         - name: render-device
@@ -193,7 +193,7 @@ spec:
             name: qbittorrent-config
         - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies
+            path: /mnt/data/movies
             type: Directory
 
 ---
@@ -247,7 +247,7 @@ spec:
             claimName: radarr-pvc
         - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies
+            path: /mnt/data/movies
             type: Directory
 
 ---
@@ -301,7 +301,7 @@ spec:
             claimName: sonarr-pvc
         - name: all-media
           hostPath:
-            path: /mnt/shared_data/movies
+            path: /mnt/data/movies
             type: Directory
 
 ---
@@ -530,7 +530,7 @@ spec:
             claimName: joal-config-pvc
         - name: torrent-import
           hostPath:
-            # mkdir -p /mnt/shared_data/movies/joal-import
-            # chmod 777 /mnt/shared_data/movies/joal-import
-            path: /mnt/shared_data/movies/joal-import
+            # mkdir -p /mnt/data/movies/joal-import
+            # chmod 777 /mnt/data/movies/joal-import
+            path: /mnt/data/movies/joal-import
             type: Directory
