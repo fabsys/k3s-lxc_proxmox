@@ -220,6 +220,20 @@
   when: k3s_target == 'lxc'
   register: k3s_data_mount
 
+- name: Passthrough GPU/TUN + proc:rw pour le LXC K3s
+  lineinfile:
+    path: /etc/pve/lxc/{{ lxc_id }}.conf
+    line: "{{ item }}"
+    create: false
+  loop:
+    - "lxc.cgroup2.devices.allow: c 226:* rwm"
+    - "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+    - "lxc.cgroup2.devices.allow: c 10:200 rwm"
+    - "lxc.mount.entry: /dev/net dev/net none bind,optional,create=dir"
+    - "lxc.mount.auto: proc:rw sys:rw"
+  when: k3s_target == 'lxc'
+  register: k3s_lxc_config
+
 - name: Redémarrage du LXC media (si config passthrough modifiée)
   command: pct reboot {{ media_lxc_id }}
   when:
@@ -227,9 +241,9 @@
     - media_lxc_config.changed or (media_games_mount is defined and media_games_mount.changed)
   ignore_errors: true
 
-- name: Redémarrage du LXC K3s (si bind-mount ajouté)
+- name: Redémarrage du LXC K3s (si config modifiée)
   command: pct reboot {{ lxc_id }}
   when:
     - k3s_target == 'lxc'
-    - k3s_data_mount is defined and k3s_data_mount.changed
+    - (k3s_data_mount is defined and k3s_data_mount.changed) or (k3s_lxc_config is defined and k3s_lxc_config.changed)
   ignore_errors: true

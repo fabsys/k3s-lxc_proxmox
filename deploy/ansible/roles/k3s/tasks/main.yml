@@ -45,6 +45,16 @@
     daemon_reload: true
   when: k3s_target == 'lxc'
 
+- name: Symlinks de compatibilité /mnt/shared_data → /mnt/data
+  file:
+    src: "/mnt/data/{{ item }}"
+    dest: "/mnt/shared_data/{{ item }}"
+    state: link
+    force: true
+  loop:
+    - movies
+    - paperless
+
 - name: Configuration du service k3s (Template propre pour LXC)
   copy:
     dest: /etc/systemd/system/k3s.service
