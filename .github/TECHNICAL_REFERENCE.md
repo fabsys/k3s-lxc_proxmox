@@ -376,9 +376,11 @@ Kodi → [RunScript(script.launch.steam)] → touch /tmp/.launch-steam
   → Steam quitte → kill Xorg/openbox/pulseaudio, modetest DRM reset, restart kodi
 ```
 
-⚠️ **Piège critique DRM master** : Quand Xorg prend le DRM master puis est tué, le kernel ne libère pas complètement le mode. Kodi redémarre en mode dégradé (1280x720 au lieu de 4K).
-- `modetest -w 94:DPMS:0` tente un reset partiel mais ne fonctionne pas toujours
-- **Seule solution fiable** : full restart du LXC via SSH vers le PVE (`ssh root@192.168.1.98 pct stop 301 && pct start 301`)
+⚠️ **Piège critique DRM — Kodi encoder_id=0** : Kodi GBM (`CDRMUtils::FindConnector()`) exige `encoder_id > 0 && IsConnected()` sur le connecteur HDMI. Sans mode DRM actif préalable, `encoder_id` reste à 0 et Kodi tombe en fallback virtuel 1280x720 (aucune sortie HDMI).
+- **Solution** : service `drm-modeset.service` (Python, libdrm) qui tourne AVANT Kodi, fait un `drmModeSetCrtc` 1920x1080@60Hz pour assigner l'encoder 93 au connecteur 94, puis drop le master et garde le fd ouvert
+- Le script `fix-kodi` restart `drm-modeset` + Kodi ; en cas de mode dégradé persistant, il restart le LXC complet via SSH PVE
+
+⚠️ **Piège DRM master post-Steam** : Quand Xorg prend le DRM master puis est tué, le kernel ne libère pas complètement le mode.
 - Le script `fix-kodi` détecte le mode dégradé via le log Kodi (`GUI format 1280x720`) et fait le restart automatiquement
 
 ### Addons Kodi
@@ -768,6 +770,9 @@ pct start <VMID>
 | 28 | renderD128 groupe kvm | PVE ignore udev rule | `ExecStartPre=/bin/chown root:render` |
 | 29 | Ansible `pulseaudio` conflict | `pulseaudio` amd64 vs `pulseaudio:i386` | Supprimer `pulseaudio:i386` de la liste |
 | 30 | Shebang `#!/bin/bash` mangé | Heredoc SSH interprète le shebang | Encoder en base64 ou utiliser module copy |
+| 31 | Kodi `failed to find connected connector` | `encoder_id=0` sur HDMI sans mode actif | `drm-modeset.service` pré-init 1080p via libdrm |
+| 32 | `DRM_IOCTL_AUTH_MAGIC` EINVAL | DRM auth échoue en LXC (red herring) | Vrai problème = encoder_id=0 (voir #31) |
+| 33 | `modetest -s` Permission denied | Pas de DRM master (Kodi ou drm-modeset le tient) | Arrêter le service qui tient le master d'abord |
 
 ---
 
