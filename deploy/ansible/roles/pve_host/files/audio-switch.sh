@@ -45,17 +45,21 @@ switch_to() {
     "s|<setting id=\"audiooutput.audiodevice\"[^>]*>.*</setting>|<setting id=\"audiooutput.audiodevice\">${kodi_device}</setting>|" \
     "$KODI_SETTINGS"
 
-  # RetroArch (seulement si pas en cours d'exécution, sinon il écrase le cfg)
+  # RetroArch (fichier en read-only, temporairement writable)
   if ! pct exec "$LXC_ID" -- pgrep -x retroarch >/dev/null 2>&1; then
+    pct exec "$LXC_ID" -- chmod 644 "$RETROARCH_CFG"
     pct exec "$LXC_ID" -- sed -i \
       "s|^audio_device = .*|audio_device = \"${ra_device}\"|" \
       "$RETROARCH_CFG"
+    pct exec "$LXC_ID" -- chmod 444 "$RETROARCH_CFG"
   fi
 
-  # Volume ALSA
+  # IEC958 HDMI switch + Volume ALSA
   if [ "$label" = "HDMI TV" ]; then
-    pct exec "$LXC_ID" -- amixer -c 0 -q set Master "$4" unmute 2>/dev/null || true
+    pct exec "$LXC_ID" -- amixer -c 0 -q set 'IEC958',0 on 2>/dev/null || true
+    pct exec "$LXC_ID" -- amixer -c 0 -q set Master 100% unmute 2>/dev/null || true
   else
+    pct exec "$LXC_ID" -- amixer -c 0 -q set 'IEC958',0 off 2>/dev/null || true
     pct exec "$LXC_ID" -- amixer -c 1 -q set Master "$4" unmute 2>/dev/null || true
     pct exec "$LXC_ID" -- amixer -c 1 -q set Headphone "$4" unmute 2>/dev/null || true
   fi
