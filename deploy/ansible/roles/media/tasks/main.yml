@@ -198,12 +198,12 @@
       KERNEL=="js[0-9]*", ACTION=="add", GROUP="input", MODE="0660"
       KERNEL=="js[0-9]*", GROUP="input", MODE="0660"
 
-- name: Configuration ALSA — sortie jack par défaut
+- name: Configuration ALSA — sortie jack par défaut (card name stable)
   copy:
     dest: /etc/asound.conf
     content: |
-      defaults.pcm.card 1
-      defaults.ctl.card 1
+      defaults.pcm.card Generic_1
+      defaults.ctl.card Generic_1
 
 - name: Configuration Kodi — dossier userdata
   file:
@@ -330,7 +330,7 @@
       video_fullscreen_y = "0"
       input_driver = "udev"
       audio_driver = "alsa"
-      audio_device = "plughw:0,3"
+      audio_device = "plughw:CARD=Generic,DEV=3"
       video_vsync = "true"
       config_save_on_exit = "false"
       libretro_info_path = "/usr/share/libretro/info"
@@ -469,14 +469,18 @@
       """Pre-initialize DRM mode on HDMI connector.
 
       Kodi GBM requires encoder_id > 0 on the connector to consider it "usable".
-      Without an active mode set, the encoder is 0. This script sets a 1920x1080@60Hz
-      mode via drmModeSetCrtc, then drops master and keeps the fd open so the encoder
-      assignment persists. Kodi will steal DRM master when it starts.
+      Without an active mode set, the encoder is 0. This script dynamically finds
+      the first connected HDMI connector, sets the requested mode via drmModeSetCrtc,
+      then drops master and keeps the fd open so the encoder assignment persists.
       """
       import os, sys, fcntl, ctypes, signal, time
 
-      CONNECTOR_ID = 94
+      TARGET_W = {{ media_display_resolution.split('x')[0] }}
+      TARGET_H = {{ media_display_resolution.split('x')[1] }}
+      TARGET_HZ = 60
       PIDFILE = "/run/drm-modeset.pid"
+      # DRM connector types: 11 = HDMI-A, 12 = HDMI-B
+      HDMI_TYPES = (11, 12)
 
       class drmModeRes(ctypes.Structure):
           _fields_ = [("count_fbs", ctypes.c_int), ("fbs", ctypes.POINTER(ctypes.c_uint32)),
@@ -519,7 +523,7 @@
                       ("bpp", ctypes.c_uint32), ("depth", ctypes.c_uint32),
                       ("handle", ctypes.c_uint32)]
 
-      def find_mode(conn_ptr, target_w=1920, target_h=1080, target_hz=60):
+      def find_mode(conn_ptr, target_w=TARGET_W, target_h=TARGET_H, target_hz=TARGET_HZ):
           c = conn_ptr.contents
           for i in range(c.count_modes):
               m = c.modes[i]
@@ -527,11 +531,27 @@
                   return m
           return c.modes[0] if c.count_modes > 0 else None
 
+      def find_hdmi_connector(libdrm, fd, resources):
+          """Find first connected HDMI connector dynamically."""
+          res = resources.contents
+          for i in range(res.count_connectors):
+              cid = res.connectors[i]
+              conn = libdrm.drmModeGetConnector(fd, cid)
+              if not conn:
+                  continue
+              c = conn.contents
+              if c.connector_type in HDMI_TYPES and c.connection == 1:
+                  print(f"Found HDMI connector {cid} (type={c.connector_type}, modes={c.count_modes})")
+                  return conn, cid
+              libdrm.drmModeFreeConnector(conn)
+          return None, None
+
       def main():
           libdrm = ctypes.CDLL("libdrm.so.2")
           libdrm.drmModeGetResources.restype = ctypes.POINTER(drmModeRes)
           libdrm.drmModeGetConnector.restype = ctypes.POINTER(drmModeConnector)
           libdrm.drmModeSetCrtc.restype = ctypes.c_int
+          libdrm.drmModeFreeConnector.restype = None
 
           fd = os.open("/dev/dri/card1", os.O_RDWR | os.O_CLOEXEC)
           try:
@@ -544,9 +564,9 @@
           if not resources:
               print("drmModeGetResources failed", file=sys.stderr); sys.exit(1)
 
-          conn = libdrm.drmModeGetConnector(fd, CONNECTOR_ID)
+          conn, connector_id = find_hdmi_connector(libdrm, fd, resources)
           if not conn:
-              print(f"Connector {CONNECTOR_ID} not found", file=sys.stderr); sys.exit(1)
+              print("No connected HDMI connector found", file=sys.stderr); sys.exit(1)
 
           c = conn.contents
           if c.connection != 1:
@@ -568,14 +588,14 @@
           fb.pitch, fb.bpp, fb.depth, fb.handle = create.pitch, 32, 24, create.handle
           fcntl.ioctl(fd, 0xC01C64AE, fb)
 
-          conn_id = ctypes.c_uint32(CONNECTOR_ID)
+          conn_id = ctypes.c_uint32(connector_id)
           ret = libdrm.drmModeSetCrtc(fd, crtc_id, fb.fb_id, 0, 0,
                                        ctypes.byref(conn_id), 1, ctypes.byref(mode))
           if ret != 0:
               print(f"drmModeSetCrtc failed: {ret}", file=sys.stderr); sys.exit(1)
 
           fcntl.ioctl(fd, 0x641f)  # DRM_IOCTL_DROP_MASTER
-          print(f"DRM mode set: {mode.hdisplay}x{mode.vdisplay}@{mode.vrefresh}Hz on CRTC {crtc_id}")
+          print(f"DRM mode set: {mode.hdisplay}x{mode.vdisplay}@{mode.vrefresh}Hz on CRTC {crtc_id} connector {connector_id}")
 
           with open(PIDFILE, "w") as f:
               f.write(str(os.getpid()))
@@ -643,8 +663,8 @@
       if echo "$LAST_LINE" | grep -q "1280x720"; then
         echo "DRM mode dégradé — redémarrage du LXC..."
         systemctl stop kodi 2>/dev/null
-        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@192.168.1.98 \
-          'pct stop 301 && sleep 3 && pct start 301' &
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@{{ pve_host_ip }} \
+          'pct stop {{ media_lxc_id }} && sleep 3 && pct start {{ media_lxc_id }}' &
         exit 0
       fi
       systemctl restart steam-switcher.path retroarch-switcher.path 2>/dev/null
@@ -786,7 +806,7 @@
       EndSection
       Section "Monitor"
         Identifier "HDMI"
-        Option "PreferredMode" "1920x1080"
+        Option "PreferredMode" "{{ media_display_resolution }}"
       EndSection
       Section "Screen"
         Identifier "Screen0"
@@ -795,7 +815,7 @@
         DefaultDepth 24
         SubSection "Display"
           Depth 24
-          Modes "1920x1080"
+          Modes "{{ media_display_resolution }}"
         EndSubSection
       EndSection
 
@@ -1029,13 +1049,16 @@
     daemon_reload: true
 
 - name: Attendre la création de la DB Addons Kodi
-  wait_for:
-    path: /home/kodi/.kodi/userdata/Database/Addons33.db
-    timeout: 30
+  shell: ls /home/kodi/.kodi/userdata/Database/Addons*.db 2>/dev/null | sort -V | tail -1
+  register: kodi_addons_db
+  until: kodi_addons_db.stdout | length > 0
+  retries: 10
+  delay: 3
+  changed_when: false
 
 - name: Activer les addons launcher dans la DB Kodi
   shell: >
-    sqlite3 /home/kodi/.kodi/userdata/Database/Addons33.db
+    sqlite3 {{ kodi_addons_db.stdout }}
     "UPDATE installed SET enabled=1 WHERE addonID IN ('script.launch.retroarch','script.launch.steam');"
   register: addon_enable
   changed_when: addon_enable.rc == 0

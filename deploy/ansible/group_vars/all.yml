@@ -9,9 +9,16 @@ k3s_home: "{{ '/root' if k3s_target == 'lxc' else '/home/ansible' }}"
 lxc_id: 300
 media_lxc_id: 301
 
+# PVE Host
+pve_host_ip: "192.168.1.98"
+data_ssd_uuid: "48d0fb77-16c4-4777-aa45-16b91aeb31ef"
+
 # Media Center
 deploy_media: false
 media_lxc_ip: "192.168.1.101"
+media_display_resolution: "1920x1080"
+bt_usb_vid: "0bda"
+bt_usb_pid: "b85b"
 k3s_cni: "cilium" # cilium ou calico
 gpu_type: "amd" # intel ou amd
 

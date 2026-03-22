@@ -80,8 +80,8 @@
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      ExecStart=/bin/sh -c 'for i in $(seq 1 10); do [ -w /sys/class/vtconsole/vtcon1/bind ] && break || sleep 1; done; echo 0 > /sys/class/vtconsole/vtcon1/bind'
-      ExecStop=/bin/sh -c 'echo 1 > /sys/class/vtconsole/vtcon1/bind'
+      ExecStart=/bin/sh -c 'for i in $(seq 1 10); do found=0; for v in /sys/class/vtconsole/vtcon*/; do [ -f "$v/name" ] && grep -q "frame buffer" "$v/name" && [ -w "$v/bind" ] && echo 0 > "$v/bind" && found=1; done; [ "$found" = 1 ] && break || sleep 1; done'
+      ExecStop=/bin/sh -c 'for v in /sys/class/vtconsole/vtcon*/; do [ -f "$v/name" ] && grep -q "frame buffer" "$v/name" && echo 1 > "$v/bind"; done'
 
       [Install]
       WantedBy=multi-user.target
@@ -121,38 +121,43 @@
     update_cache: false
   when: deploy_media | bool
 
-- name: Service systemd — binding Realtek RTL8852BU (0bda:b85b) vers btusb au boot
+- name: Service systemd — binding Realtek BT USB adapter vers btusb au boot
   copy:
     dest: /etc/systemd/system/btusb-realtek.service
     content: |
       [Unit]
-      Description=Bind Realtek RTL8852BU USB BT adapter to btusb driver
+      Description=Bind Realtek USB BT adapter to btusb driver
       After=bluetooth.service
       Wants=bluetooth.service
 
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      ExecStart=/bin/sh -c 'modprobe btusb && echo "0bda b85b" > /sys/bus/usb/drivers/btusb/new_id || true'
+      ExecStart=/bin/sh -c 'modprobe btusb && echo "{{ bt_usb_vid }} {{ bt_usb_pid }}" > /sys/bus/usb/drivers/btusb/new_id || true'
 
       [Install]
       WantedBy=multi-user.target
-  when: deploy_media | bool
+  when: deploy_media | bool and bt_usb_vid is defined and bt_usb_pid is defined
 
-- name: Activer btusb-realtek et bluetooth au démarrage PVE
+- name: Activer bluetooth au démarrage PVE
   systemd:
-    name: "{{ item }}"
+    name: bluetooth
     enabled: true
     state: started
     daemon_reload: true
-  loop:
-    - bluetooth
-    - btusb-realtek
   when: deploy_media | bool
 
+- name: Activer btusb-realtek au démarrage PVE
+  systemd:
+    name: btusb-realtek
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: deploy_media | bool and bt_usb_vid is defined and bt_usb_pid is defined
+
 - name: Déployer audio-switch sur l'hôte PVE
-  copy:
-    src: audio-switch.sh
+  template:
+    src: audio-switch.sh.j2
     dest: /usr/local/bin/audio-switch
     mode: '0755'
   when: deploy_media | bool
@@ -171,10 +176,10 @@
     path: /mnt/data
     state: directory
 
-- name: Monter le SSD données (/dev/nvme0n1p1) via fstab
+- name: Monter le SSD données via UUID (stable après réordonnancement NVMe)
   mount:
     path: /mnt/data
-    src: /dev/nvme0n1p1
+    src: "UUID={{ data_ssd_uuid }}"
     fstype: ext4
     opts: defaults,noatime
     passno: "2"
