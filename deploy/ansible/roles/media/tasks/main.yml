@@ -332,6 +332,7 @@
       audio_driver = "alsa"
       audio_device = "plughw:0,3"
       video_vsync = "true"
+      config_save_on_exit = "false"
       libretro_info_path = "/usr/share/libretro/info"
       rgui_browser_directory = "/home/kodi/roms"
       savefile_directory = "/home/kodi/saves"
