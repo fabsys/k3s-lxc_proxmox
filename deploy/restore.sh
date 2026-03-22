@@ -19,6 +19,25 @@ error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 # ---- prérequis ----
 command -v kubectl &>/dev/null || error "kubectl non trouvé"
 
+# ---- ArgoCD auto-sync control ----
+disable_argocd_sync() {
+  local app="$1"
+  info "Désactivation auto-sync ArgoCD pour $app..."
+  kubectl patch application root-app -n argocd --type=json \
+    -p='[{"op":"remove","path":"/spec/syncPolicy/automated"}]' 2>/dev/null || true
+  kubectl patch application "$app" -n argocd --type=json \
+    -p='[{"op":"remove","path":"/spec/syncPolicy/automated"}]' 2>/dev/null || true
+}
+
+enable_argocd_sync() {
+  local app="$1"
+  info "Réactivation auto-sync ArgoCD pour $app..."
+  kubectl patch application "$app" -n argocd --type=merge \
+    -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}' 2>/dev/null || true
+  kubectl patch application root-app -n argocd --type=merge \
+    -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}' 2>/dev/null || true
+}
+
 # ---- menu ----
 echo ""
 echo "================================================"
@@ -66,11 +85,14 @@ restore_arr_stack() {
   kubectl get secret restic-secret -n arr-stack &>/dev/null   || error "Secret restic-secret introuvable dans arr-stack"
   kubectl get secret rclone-config -n arr-stack &>/dev/null   || error "Secret rclone-config introuvable dans arr-stack"
 
+  disable_argocd_sync arr-stack
+
   warn "Scale down des deployments arr-stack..."
   for dep in radarr sonarr prowlarr jellyfin jellyseerr joal qbittorrent; do
     kubectl scale deployment "$dep" -n arr-stack --replicas=0 2>/dev/null || true
   done
-  kubectl wait pod -n arr-stack --all --for=delete --timeout=120s 2>/dev/null || true
+  sleep 5
+  kubectl wait pod -n arr-stack -l "app in (radarr,sonarr,prowlarr,jellyfin,jellyseerr,joal,qbittorrent)" --for=delete --timeout=120s 2>/dev/null || true
 
   cleanup_job arr-stack arr-stack-restore
 
@@ -106,24 +128,30 @@ spec:
               apk add --no-cache restic rclone
               cp /rclone/rclone.conf /tmp/rclone.conf
 
-              echo "Snapshots disponibles :"
-              restic snapshots
+              echo "Nettoyage des PVCs..."
+              for d in radarr sonarr prowlarr jellyfin jellyseerr; do
+                rm -rf /data/\$d/* /data/\$d/.[!.]* 2>/dev/null || true
+              done
+
+              restic unlock --remove-all 2>/dev/null || true
 
               echo "=== Restauration Radarr ==="
-              restic restore latest --target / --path /data/radarr
+              restic restore latest --tag radarr --target / --path /data/radarr
 
               echo "=== Restauration Sonarr ==="
-              restic restore latest --target / --path /data/sonarr
+              restic restore latest --tag sonarr --target / --path /data/sonarr
 
               echo "=== Restauration Prowlarr ==="
-              restic restore latest --target / --path /data/prowlarr
+              restic restore latest --tag prowlarr --target / --path /data/prowlarr
 
               echo "=== Restauration Jellyfin ==="
-              restic restore latest --target / --path /data/jellyfin
+              restic restore latest --tag jellyfin --target / --path /data/jellyfin
 
               echo "=== Restauration Jellyseerr ==="
-              restic restore latest --target / --path /data/jellyseerr
+              restic restore latest --tag jellyseerr --target / --path /data/jellyseerr
 
+              echo "=== Tailles restaurées ==="
+              du -sh /data/radarr /data/sonarr /data/prowlarr /data/jellyfin /data/jellyseerr
               echo "Restauration arr-stack terminee."
           volumeMounts:
             - name: radarr
@@ -169,6 +197,7 @@ EOF
   for dep in radarr sonarr prowlarr jellyfin jellyseerr joal qbittorrent; do
     kubectl scale deployment "$dep" -n arr-stack --replicas=1 2>/dev/null || true
   done
+  enable_argocd_sync arr-stack
   success "arr-stack restauré et redémarré"
 }
 
@@ -180,6 +209,8 @@ restore_syncthing() {
 
   kubectl get secret restic-secret -n syncthing &>/dev/null  || error "Secret restic-secret introuvable dans syncthing"
   kubectl get secret rclone-config -n syncthing &>/dev/null  || error "Secret rclone-config introuvable dans syncthing"
+
+  disable_argocd_sync syncthing
 
   warn "Scale down du deployment syncthing..."
   kubectl scale deployment syncthing -n syncthing --replicas=0
@@ -219,12 +250,16 @@ spec:
               apk add --no-cache restic rclone
               cp /rclone/rclone.conf /tmp/rclone.conf
 
-              echo "Snapshots disponibles :"
-              restic snapshots
+              echo "Nettoyage du PVC..."
+              rm -rf /data/config/* /data/config/.[!.]* 2>/dev/null || true
+
+              restic unlock --remove-all 2>/dev/null || true
 
               echo "=== Restauration Syncthing config ==="
               restic restore latest --target / --path /data/config
 
+              echo "=== Taille restaurée ==="
+              du -sh /data/config
               echo "Restauration syncthing terminee."
           volumeMounts:
             - name: syncthing-config
@@ -248,6 +283,7 @@ EOF
 
   warn "Scale up du deployment syncthing..."
   kubectl scale deployment syncthing -n syncthing --replicas=1
+  enable_argocd_sync syncthing
   success "syncthing restauré et redémarré"
 }
 
@@ -261,11 +297,12 @@ restore_paperless() {
   kubectl get secret rclone-config -n paperless &>/dev/null   || error "Secret rclone-config introuvable dans paperless"
   kubectl get secret paperless-secret -n paperless &>/dev/null || error "Secret paperless-secret introuvable dans paperless (requis pour pg restore)"
 
-  warn "Scale down des deployments paperless..."
-  for dep in paperless-ngx paperless-postgres paperless-redis; do
-    kubectl scale deployment "$dep" -n paperless --replicas=0 2>/dev/null || true
-  done
-  kubectl wait pod -n paperless --all --for=delete --timeout=120s 2>/dev/null || true
+  disable_argocd_sync paperless
+
+  warn "Scale down paperless-ngx (postgres+redis restent up pour l'import SQL)..."
+  kubectl scale deployment paperless-ngx -n paperless --replicas=0 2>/dev/null || true
+  sleep 5
+  kubectl wait pod -n paperless -l app=paperless-ngx --for=delete --timeout=120s 2>/dev/null || true
 
   cleanup_job paperless paperless-restore
 
@@ -301,8 +338,7 @@ spec:
               apk add --no-cache restic rclone
               cp /rclone/rclone.conf /tmp/rclone.conf
 
-              echo "Snapshots disponibles :"
-              restic snapshots
+              restic unlock --remove-all 2>/dev/null || true
 
               echo "=== Restauration dump SQL ==="
               restic restore latest --target /restore --path /backup/
@@ -337,12 +373,19 @@ spec:
                 echo "Aucun dump SQL trouvé dans /restore/backup/"
                 exit 1
               fi
-              echo "Restoration depuis : \$SQL_FILE"
-              psql -h paperless-postgres -U paperless paperlessdb < "\$SQL_FILE"
-              echo "Restauration PostgreSQL terminée."
+              echo "Restauration depuis : \$SQL_FILE"
 
-              echo "Copie du media restauré..."
-              cp -r /restore/media/documents/* /media/documents/ 2>/dev/null || echo "Pas de media à copier"
+              echo "Nettoyage de la base..."
+              echo "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" | psql -h paperless-postgres -U paperless paperlessdb
+
+              echo "Import du dump SQL..."
+              psql -h paperless-postgres -U paperless paperlessdb < "\$SQL_FILE"
+
+              echo "=== Vérification ==="
+              echo "Documents:" && psql -h paperless-postgres -U paperless paperlessdb -t -c "SELECT count(*) FROM documents_document;"
+
+              echo "Sync media..."
+              cp -rn /restore/media/documents/* /media/documents/ 2>/dev/null || echo "Media déjà en place"
               echo "Restauration paperless terminée."
           volumeMounts:
             - name: restore-tmp
@@ -366,10 +409,9 @@ EOF
 
   wait_job paperless paperless-restore
 
-  warn "Scale up des deployments paperless..."
-  for dep in paperless-postgres paperless-redis paperless-ngx; do
-    kubectl scale deployment "$dep" -n paperless --replicas=1 2>/dev/null || true
-  done
+  warn "Scale up paperless-ngx..."
+  kubectl scale deployment paperless-ngx -n paperless --replicas=1 2>/dev/null || true
+  enable_argocd_sync paperless
   success "paperless restauré et redémarré"
 }
 
