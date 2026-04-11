@@ -22,7 +22,7 @@ spec:
         # supplementalGroups: [44, 991]
       containers:
         - name: jellyfin
-          image: docker.io/jellyfin/jellyfin:10.11.7
+          image: docker.io/jellyfin/jellyfin:10.11.8
           resources:
             requests:
               memory: "1Gi"
@@ -452,7 +452,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-local-data
-          image: curlimages/curl:8.18.0
+          image: curlimages/curl:8.19.0
           command: ["/bin/sh", "-c"]
           args:
             - |
