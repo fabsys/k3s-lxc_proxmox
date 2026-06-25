@@ -22,7 +22,7 @@ spec:
         # supplementalGroups: [44, 991]
       containers:
         - name: jellyfin
-          image: docker.io/jellyfin/jellyfin:10.11.7
+          image: docker.io/jellyfin/jellyfin:10.11.11
           resources:
             requests:
               memory: "1Gi"
@@ -80,7 +80,7 @@ spec:
       
       initContainers:
         - name: init-config
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           env:
             - name: WEBUI_PASS
               valueFrom:
@@ -272,7 +272,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: sonarr
-          image: lscr.io/linuxserver/sonarr:4.0.17
+          image: lscr.io/linuxserver/sonarr:4.0.18
           resources:
             requests:
               memory: "256Mi"
@@ -410,7 +410,7 @@ spec:
           mountPath: /app/config
       containers:
         - name: jellyseerr
-          image: ghcr.io/seerr-team/seerr:v3.1.0
+          image: ghcr.io/seerr-team/seerr:v3.3.0
           resources:
             requests:
               memory: "256Mi"
@@ -452,7 +452,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-local-data
-          image: curlimages/curl:8.18.0
+          image: curlimages/curl:8.21.0
           command: ["/bin/sh", "-c"]
           args:
             - |

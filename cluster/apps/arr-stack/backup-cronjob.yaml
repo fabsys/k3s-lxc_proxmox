@@ -13,7 +13,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: restic-backup
-              image: alpine:3.23
+              image: alpine:3.24
               env:
                 - name: RESTIC_REPOSITORY
                   value: "rclone:gdrive:k3s-backups/arr-stack"
