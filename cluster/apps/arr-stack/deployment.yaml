@@ -218,7 +218,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: radarr
-          image: lscr.io/linuxserver/radarr:6.1.1
+          image: lscr.io/linuxserver/radarr:6.3.0
           resources:
             requests:
               memory: "256Mi"
@@ -272,7 +272,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: sonarr
-          image: lscr.io/linuxserver/sonarr:4.0.18
+          image: lscr.io/linuxserver/sonarr:4.0.19
           resources:
             requests:
               memory: "256Mi"
@@ -410,7 +410,7 @@ spec:
           mountPath: /app/config
       containers:
         - name: jellyseerr
-          image: ghcr.io/seerr-team/seerr:v3.3.0
+          image: ghcr.io/seerr-team/seerr:v3.4.1
           resources:
             requests:
               memory: "256Mi"
