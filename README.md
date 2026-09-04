@@ -97,18 +97,18 @@ Home Assistant OS is hosted outside the cluster at `192.168.1.201:8123`. The
 `home-assistant` application exposes it through the public ingress at
 `https://ha.fabsys.ovh`.
 
-Add the K3s node to `/config/configuration.yaml` on Home Assistant OS so that
-Home Assistant accepts the headers forwarded by ingress-nginx:
+On Home Assistant 2026.8 and later, configure the reverse proxy from
+**Settings > System > Network > HTTP server**:
 
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 192.168.1.100
-```
+- enable **Trust X-Forwarded-For**;
+- add `192.168.1.100` under **Trusted proxies**;
+- set the Internet URL to `https://ha.fabsys.ovh`;
+- save, wait for the automatic restart, then confirm the settings within five
+  minutes.
 
-Check the configuration and restart Home Assistant Core after this change.
-Keep this address restricted to the K3s node; do not trust the complete LAN.
+Remove any migrated `http:` block from `/config/configuration.yaml`, because it
+is ignored by these Home Assistant versions. Keep the trusted address
+restricted to the K3s node; do not trust the complete LAN.
 
 ---
 
