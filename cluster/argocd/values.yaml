@@ -17,5 +17,54 @@ argo-cd:
       tls: true
 
   configs:
+    cm:
+      # EndpointSlice est volontairement gere par Argo CD pour les services
+      # externes declares dans Git. Les Endpoints historiques restent exclus.
+      resource.exclusions: |
+        - apiGroups:
+            - ''
+          kinds:
+            - Endpoints
+        - apiGroups:
+            - coordination.k8s.io
+          kinds:
+            - Lease
+        - apiGroups:
+            - authentication.k8s.io
+            - authorization.k8s.io
+          kinds:
+            - SelfSubjectReview
+            - TokenReview
+            - LocalSubjectAccessReview
+            - SelfSubjectAccessReview
+            - SelfSubjectRulesReview
+            - SubjectAccessReview
+        - apiGroups:
+            - certificates.k8s.io
+          kinds:
+            - CertificateSigningRequest
+        - apiGroups:
+            - cert-manager.io
+          kinds:
+            - CertificateRequest
+        - apiGroups:
+            - cilium.io
+          kinds:
+            - CiliumIdentity
+            - CiliumEndpoint
+            - CiliumEndpointSlice
+        - apiGroups:
+            - kyverno.io
+            - reports.kyverno.io
+            - wgpolicyk8s.io
+          kinds:
+            - PolicyReport
+            - ClusterPolicyReport
+            - EphemeralReport
+            - ClusterEphemeralReport
+            - AdmissionReport
+            - ClusterAdmissionReport
+            - BackgroundScanReport
+            - UpdateRequest
     secret:
       argocdServerAdminPassword: $2a$12$bIjjBTOvM53e4x1dqFN5UuNkAIAMjWDGYPJvAIftp3zpFPqCSwCOq # "admin" bcrypt hashed
