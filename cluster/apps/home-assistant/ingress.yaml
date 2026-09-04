@@ -1,0 +1,30 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: home-assistant-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    external-dns.alpha.kubernetes.io/hostname: "ha.fabsys.ovh"
+    external-dns.alpha.kubernetes.io/target: "ip.fabsys.ovh"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    # Connexions longues utilisees par l'interface et l'application Home Assistant.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx-public
+  rules:
+    - host: ha.fabsys.ovh
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: home-assistant
+                port:
+                  number: 8123
+  tls:
+    - hosts:
+        - ha.fabsys.ovh
+      secretName: home-assistant-tls-certificate

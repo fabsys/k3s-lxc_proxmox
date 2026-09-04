@@ -79,6 +79,7 @@ Internal services use a **real public subdomain** (`int.fabsys.ovh`) with DNS re
 |-----|-----|-------------|
 | ArgoCD | argocd.int.fabsys.ovh | GitOps controller (self-managed) |
 | Homepage | homepage.int.fabsys.ovh | Dashboard |
+| Home Assistant | ha.fabsys.ovh | Home automation (external host `192.168.1.201:8123`) |
 | Jellyfin | jellyfin.fabsys.ovh | Media server (VAAPI transcoding) |
 | Jellyseerr | jellyseerr.fabsys.ovh | Media requests |
 | Radarr | radarr.int.fabsys.ovh | Movie automation |

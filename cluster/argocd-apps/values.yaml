@@ -85,6 +85,9 @@ apps:
   - appName: homepage
     path: cluster/apps/homepage
     namespace: homepage
+  - appName: home-assistant
+    path: cluster/apps/home-assistant
+    namespace: home-assistant
   - appName: syncthing
     path: cluster/apps/syncthing
     namespace: syncthing
