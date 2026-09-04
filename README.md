@@ -91,6 +91,25 @@ Internal services use a **real public subdomain** (`int.fabsys.ovh`) with DNS re
 | Syncthing | syncthing.int.fabsys.ovh | File synchronization |
 | Filebrowser | filebrowser.int.fabsys.ovh | Web file manager |
 
+#### Home Assistant reverse proxy
+
+Home Assistant OS is hosted outside the cluster at `192.168.1.201:8123`. The
+`home-assistant` application exposes it through the public ingress at
+`https://ha.fabsys.ovh`.
+
+Add the K3s node to `/config/configuration.yaml` on Home Assistant OS so that
+Home Assistant accepts the headers forwarded by ingress-nginx:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.1.100
+```
+
+Check the configuration and restart Home Assistant Core after this change.
+Keep this address restricted to the K3s node; do not trust the complete LAN.
+
 ---
 
 ## Prerequisites
