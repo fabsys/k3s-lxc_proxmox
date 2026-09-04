@@ -5,12 +5,30 @@
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
+- name: Configuration du pool IP Calico
+  copy:
+    dest: /etc/rancher/k3s/calico-values.yaml
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      installation:
+        calicoNetwork:
+          ipPools:
+            - name: k3s-pod-network
+              cidr: {{ k3s_cluster_cidr }}
+              blockSize: 26
+              encapsulation: IPIP
+              natOutgoing: Enabled
+              nodeSelector: all()
+
 - name: Installation de Calico via Tigera Operator
   shell: |
     helm upgrade --install calico projectcalico/tigera-operator \
       --version v{{ calico_version }} \
       --namespace tigera-operator \
-      --create-namespace
+      --create-namespace \
+      --values /etc/rancher/k3s/calico-values.yaml
   environment:
     KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
