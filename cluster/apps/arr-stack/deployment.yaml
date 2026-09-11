@@ -452,7 +452,7 @@ spec:
         fsGroup: 1000
       initContainers:
         - name: init-local-data
-          image: curlimages/curl:8.21.0
+          image: curlimages/curl:8.22.0
           command: ["/bin/sh", "-c"]
           args:
             - |
