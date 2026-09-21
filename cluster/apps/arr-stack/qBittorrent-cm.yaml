@@ -32,7 +32,7 @@ data:
     Connection\UPnP=false
     Downloads\FinishedTorrentExportDir=/data/joal-import
     Downloads\SavePath=/data/downloads/
-    Downloads\TempPath=/data/downloads/incomplete/
+    Downloads\TempPath=/downloads/incomplete/
     DynDNS\DomainName=changeme.dyndns.org
     DynDNS\Enabled=false
     DynDNS\Password=
